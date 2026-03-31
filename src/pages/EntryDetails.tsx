@@ -15,14 +15,16 @@ import {
   Copy, 
   CheckCircle2,
   Clock,
-  User
+  User,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 
 const EntryDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { knowledgeBase } = useApp();
+  const { knowledgeBase, voteEntry } = useApp();
   
   const entry = knowledgeBase.find(e => e.id === id);
 
@@ -42,6 +44,11 @@ const EntryDetails = () => {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(entry.solution);
     showSuccess('Solução copiada para a área de transferência!');
+  };
+
+  const handleVote = (type: 'up' | 'down') => {
+    voteEntry(entry.id, type);
+    showSuccess(type === 'up' ? 'Obrigado pelo feedback positivo!' : 'Feedback registrado.');
   };
 
   return (
@@ -115,6 +122,27 @@ const EntryDetails = () => {
                 </pre>
               </div>
             </CardContent>
+            <div className="bg-accent/30 p-4 flex items-center justify-between border-t border-border">
+              <span className="text-sm font-medium text-muted-foreground">Esta solução foi útil?</span>
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-2 hover:text-emerald-500 rounded-lg"
+                  onClick={() => handleVote('up')}
+                >
+                  <ThumbsUp className="w-4 h-4" /> {entry.upvotes}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="gap-2 hover:text-destructive rounded-lg"
+                  onClick={() => handleVote('down')}
+                >
+                  <ThumbsDown className="w-4 h-4" /> {entry.downvotes}
+                </Button>
+              </div>
+            </div>
           </Card>
         </div>
 

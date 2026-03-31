@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight } from 'lucide-react';
+import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Cell } from 'recharts';
 import ChatAssistant from '@/components/ChatAssistant';
+import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
   const { knowledgeBase, user } = useApp();
@@ -36,6 +37,13 @@ const Dashboard = () => {
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [knowledgeBase]);
+
+  const systemStatus = [
+    { name: 'VPN Corporativa', status: 'online', icon: ShieldAlert },
+    { name: 'Active Directory', status: 'online', icon: Activity },
+    { name: 'Servidor de E-mail', status: 'warning', icon: Mail },
+    { name: 'Link Internet', status: 'online', icon: Globe },
+  ];
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#64748b'];
 
@@ -67,6 +75,32 @@ const Dashboard = () => {
             </div>
           </Card>
         </div>
+      </div>
+
+      {/* Status Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {systemStatus.map((sys) => (
+          <Card key={sys.name} className="border-none shadow-sm bg-card/50">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={cn(
+                "p-2 rounded-lg",
+                sys.status === 'online' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+              )}>
+                <sys.icon className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase text-muted-foreground truncate">{sys.name}</p>
+                <div className="flex items-center gap-1.5">
+                  <div className={cn(
+                    "w-1.5 h-1.5 rounded-full animate-pulse",
+                    sys.status === 'online' ? "bg-emerald-500" : "bg-amber-500"
+                  )} />
+                  <span className="text-xs font-medium capitalize">{sys.status}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
