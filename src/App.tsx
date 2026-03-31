@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import CommandMenu from "./components/CommandMenu";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
         <Toaster />
         <Sonner position="top-right" />
         <BrowserRouter>
+          <CommandMenu />
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
