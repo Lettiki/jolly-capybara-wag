@@ -24,6 +24,8 @@ interface AppContextType {
   login: (email: string, name: string) => void;
   logout: () => void;
   knowledgeBase: KnowledgeEntry[];
+  favorites: string[];
+  toggleFavorite: (id: string) => void;
   addEntry: (entry: Omit<KnowledgeEntry, 'id' | 'createdAt'>) => void;
   updateEntry: (id: string, entry: Partial<KnowledgeEntry>) => void;
   deleteEntry: (id: string) => void;
@@ -74,11 +76,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : MOCK_DATA;
   });
 
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    const saved = localStorage.getItem('support_favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   useEffect(() => {
     localStorage.setItem('knowledge_base', JSON.stringify(knowledgeBase));
   }, [knowledgeBase]);
+
+  useEffect(() => {
+    localStorage.setItem('support_favorites', JSON.stringify(favorites));
+  }, [favorites]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -99,6 +110,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('support_user');
   };
 
+  const toggleFavorite = (id: string) => {
+    setFavorites(prev => 
+      prev.includes(id) ? prev.filter(favId => favId !== id) : [...prev, id]
+    );
+  };
+
   const addEntry = (entry: Omit<KnowledgeEntry, 'id' | 'createdAt'>) => {
     const newEntry: KnowledgeEntry = {
       ...entry,
@@ -116,13 +133,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteEntry = (id: string) => {
     setKnowledgeBase(prev => prev.filter(entry => entry.id !== id));
+    setFavorites(prev => prev.filter(favId => favId !== id));
   };
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   return (
     <AppContext.Provider value={{ 
-      user, login, logout, knowledgeBase, addEntry, updateEntry, deleteEntry, isDarkMode, toggleDarkMode 
+      user, login, logout, knowledgeBase, favorites, toggleFavorite, addEntry, updateEntry, deleteEntry, isDarkMode, toggleDarkMode 
     }}>
       {children}
     </AppContext.Provider>

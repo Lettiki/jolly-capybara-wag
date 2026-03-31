@@ -1,21 +1,23 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp, Category } from '@/context/AppContext';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
-  Filter, 
   Edit2, 
   Trash2, 
   Plus, 
   ChevronRight,
   Calendar,
   Tag as TagIcon,
-  MoreVertical
+  MoreVertical,
+  Star,
+  Copy
 } from 'lucide-react';
 import { 
   DropdownMenu, 
@@ -24,19 +26,33 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { showSuccess } from '@/utils/toast';
-import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 const KnowledgeBase = () => {
-  const { knowledgeBase, deleteEntry } = useApp();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<Category | 'Todas'>('Todas');
+  const { knowledgeBase, deleteEntry, favorites, toggleFavorite } = useApp();
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState<Category | 'Todas' | 'Favoritos'>('Todas');
 
-  const categories: (Category | 'Todas')[] = ['Todas', 'Rede', 'Sistema', 'AD', 'Email', 'Hardware', 'Outros'];
+  useEffect(() => {
+    const query = searchParams.get('search');
+    if (query) setSearchTerm(query);
+  }, [searchParams]);
+
+  const categories: (Category | 'Todas' | 'Favoritos')[] = ['Todas', 'Favoritos', 'Rede', 'Sistema', 'AD', 'Email', 'Hardware', 'Outros'];
 
   const filteredEntries = knowledgeBase.filter(entry => {
     const matchesSearch = entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'Todas' || entry.category === selectedCategory;
+                         entry.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         entry.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    let matchesCategory = true;
+    if (selectedCategory === 'Favoritos') {
+      matchesCategory = favorites.includes(entry.id);
+    } else if (selectedCategory !== 'Todas') {
+      matchesCategory = entry.category === selectedCategory;
+    }
+
     return matchesSearch && matchesCategory;
   });
 
@@ -45,6 +61,11 @@ const KnowledgeBase = () => {
       deleteEntry(id);
       showSuccess('Registro excluído com sucesso.');
     }
+  };
+
+  const copySolution = (solution: string) => {
+    navigator.clipboard.writeText(solution);
+    showSuccess('Solução copiada!');
   };
 
   return (
@@ -68,7 +89,7 @@ const KnowledgeBase = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
-                placeholder="Buscar por título ou descrição..." 
+                placeholder="Buscar por título, descrição ou tags..." 
                 className="pl-10 h-11 rounded-xl"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -80,9 +101,13 @@ const KnowledgeBase = () => {
                   key={cat}
                   variant={selectedCategory === cat ? 'default' : 'outline'}
                   size="sm"
-                  className="rounded-full px-4 h-11"
+                  className={cn(
+                    "rounded-full px-4 h-11 whitespace-nowrap",
+                    cat === 'Favoritos' && selectedCategory === 'Favoritos' ? "bg-amber-500 hover:bg-amber-600 text-white border-none" : ""
+                  )}
                   onClick={() => setSelectedCategory(cat)}
                 >
+                  {cat === 'Favoritos' && <Star className={cn("w-4 h-4 mr-2", selectedCategory === 'Favoritos' ? "fill-current" : "")} />}
                   {cat}
                 </Button>
               ))}
@@ -115,26 +140,44 @@ const KnowledgeBase = () => {
                           {new Date(entry.createdAt).toLocaleDateString('pt-BR')}
                         </div>
                       </div>
-                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors">{entry.title}</h3>
+                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors flex items-center gap-2">
+                        {entry.title}
+                        {favorites.includes(entry.id) && <Star className="w-4 h-4 fill-amber-500 text-amber-500" />}
+                      </h3>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-xl">
-                        <DropdownMenuItem className="gap-2 cursor-pointer">
-                          <Edit2 className="w-4 h-4" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="gap-2 text-destructive focus:text-destructive cursor-pointer"
-                          onClick={() => handleDelete(entry.id)}
-                        >
-                          <Trash2 className="w-4 h-4" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-full text-muted-foreground hover:text-amber-500"
+                        onClick={() => toggleFavorite(entry.id)}
+                      >
+                        <Star className={cn("w-4 h-4", favorites.includes(entry.id) ? "fill-amber-500 text-amber-500" : "")} />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="rounded-full">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="rounded-xl">
+                          <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => copySolution(entry.solution)}>
+                            <Copy className="w-4 h-4" /> Copiar Solução
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 cursor-pointer" asChild>
+                            <Link to={`/edit/${entry.id}`}>
+                              <Edit2 className="w-4 h-4" /> Editar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+                            onClick={() => handleDelete(entry.id)}
+                          >
+                            <Trash2 className="w-4 h-4" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                   
                   <p className="text-muted-foreground mt-3 text-sm leading-relaxed line-clamp-2">
@@ -150,9 +193,11 @@ const KnowledgeBase = () => {
                         </div>
                       ))}
                     </div>
-                    <Button variant="ghost" size="sm" className="gap-1 text-primary font-bold hover:bg-primary/10 rounded-lg">
-                      Ver Detalhes <ChevronRight className="w-4 h-4" />
-                    </Button>
+                    <Link to={`/entry/${entry.id}`}>
+                      <Button variant="ghost" size="sm" className="gap-1 text-primary font-bold hover:bg-primary/10 rounded-lg">
+                        Ver Detalhes <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>
