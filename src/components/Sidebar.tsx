@@ -13,18 +13,25 @@ import {
   Moon,
   Sun,
   ShieldCheck,
-  Command
+  Command,
+  Bell,
+  Check
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, isDarkMode, toggleDarkMode, user } = useApp();
+  const { logout, isDarkMode, toggleDarkMode, user, notifications, markNotificationAsRead } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -49,11 +56,62 @@ const Sidebar = () => {
 
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col h-screen sticky top-0">
-      <div className="p-6 flex items-center gap-3">
-        <div className="bg-primary p-2 rounded-lg">
-          <ShieldCheck className="text-primary-foreground w-6 h-6" />
+      <div className="p-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary p-2 rounded-lg">
+            <ShieldCheck className="text-primary-foreground w-6 h-6" />
+          </div>
+          <h1 className="font-bold text-xl tracking-tight">TechSupport</h1>
         </div>
-        <h1 className="font-bold text-xl tracking-tight">TechSupport</h1>
+        
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative rounded-full h-9 w-9">
+              <Bell className="w-5 h-5 text-muted-foreground" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-destructive text-[10px] font-bold text-white rounded-full flex items-center justify-center border-2 border-card">
+                  {unreadCount}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0 rounded-2xl shadow-2xl border-border" align="start">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-accent/30">
+              <h3 className="font-bold text-sm">Notificações</h3>
+              <Badge variant="secondary" className="text-[10px]">{unreadCount} novas</Badge>
+            </div>
+            <ScrollArea className="h-[300px]">
+              <div className="divide-y divide-border">
+                {notifications.length > 0 ? notifications.map((n) => (
+                  <div 
+                    key={n.id} 
+                    className={cn(
+                      "p-4 hover:bg-accent/50 transition-colors cursor-pointer group relative",
+                      !n.read && "bg-primary/5"
+                    )}
+                    onClick={() => markNotificationAsRead(n.id)}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase",
+                        n.type === 'success' ? "text-emerald-500" : n.type === 'warning' ? "text-amber-500" : "text-blue-500"
+                      )}>
+                        {n.title}
+                      </span>
+                      {!n.read && <div className="w-2 h-2 bg-primary rounded-full" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed pr-4">{n.description}</p>
+                    <p className="text-[9px] text-muted-foreground mt-2">
+                      {new Date(n.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                )) : (
+                  <div className="p-8 text-center text-sm text-muted-foreground">Nenhuma notificação.</div>
+                )}
+              </div>
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="px-4 mb-4">

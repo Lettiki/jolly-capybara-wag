@@ -4,8 +4,9 @@ import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -14,20 +15,23 @@ import {
   Share2, 
   Copy, 
   CheckCircle2,
-  Clock,
   User,
   AlertTriangle,
   Users,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
+import { cn } from '@/lib/utils';
 
 const EntryDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { knowledgeBase, markAsHelpful } = useApp();
+  const { knowledgeBase, markAsHelpful, addComment, user } = useApp();
   const [hasVoted, setHasVoted] = useState(false);
+  const [commentInput, setCommentInput] = useState('');
   
   const entry = knowledgeBase.find(e => e.id === id);
 
@@ -68,6 +72,14 @@ const EntryDetails = () => {
       setHasVoted(true);
       showSuccess('Obrigado pelo seu feedback!');
     }
+  };
+
+  const handleAddComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentInput.trim()) return;
+    addComment(entry.id, commentInput);
+    setCommentInput('');
+    showSuccess('Comentário adicionado!');
   };
 
   return (
@@ -180,6 +192,51 @@ const EntryDetails = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Seção de Comentários */}
+        <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" /> Notas Técnicas e Colaboração
+            </CardTitle>
+            <CardDescription>Adicione observações ou atualizações sobre esta solução.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              {entry.comments.length > 0 ? entry.comments.map((comment) => (
+                <div key={comment.id} className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                    {comment.author.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 bg-accent/30 p-3 rounded-2xl rounded-tl-none">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold">{comment.author}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(comment.createdAt).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{comment.content}</p>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-center py-4 text-sm text-muted-foreground italic">Nenhuma nota técnica adicionada ainda.</p>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="border-t border-border p-4">
+            <form onSubmit={handleAddComment} className="flex w-full gap-2">
+              <Input 
+                placeholder="Adicionar uma nota técnica..." 
+                className="rounded-xl h-10 bg-accent/50 border-none"
+                value={commentInput}
+                onChange={(e) => setCommentInput(e.target.value)}
+              />
+              <Button type="submit" size="icon" className="rounded-xl shrink-0" disabled={!commentInput.trim()}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </form>
+          </CardFooter>
+        </Card>
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 bg-accent/30 rounded-3xl border border-border">
           <div className="space-y-1">

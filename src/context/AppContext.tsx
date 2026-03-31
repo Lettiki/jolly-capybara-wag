@@ -4,6 +4,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type Category = 'Rede' | 'Sistema' | 'AD' | 'Email' | 'Hardware' | 'Outros';
 
+export interface Comment {
+  id: string;
+  author: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface KnowledgeEntry {
   id: string;
   title: string;
@@ -12,7 +19,17 @@ export interface KnowledgeEntry {
   category: Category;
   tags: string[];
   reporters: string[];
-  helpfulCount: number; // Nova métrica de utilidade
+  helpfulCount: number;
+  comments: Comment[]; // Novo campo para colaboração
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  type: 'info' | 'success' | 'warning';
+  read: boolean;
   createdAt: string;
 }
 
@@ -27,11 +44,14 @@ interface AppContextType {
   logout: () => void;
   knowledgeBase: KnowledgeEntry[];
   favorites: string[];
+  notifications: Notification[];
   toggleFavorite: (id: string) => void;
-  addEntry: (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'helpfulCount'>) => void;
+  addEntry: (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'helpfulCount' | 'comments'>) => void;
   updateEntry: (id: string, entry: Partial<KnowledgeEntry>) => void;
   deleteEntry: (id: string) => void;
   markAsHelpful: (id: string) => void;
+  addComment: (entryId: string, content: string) => void;
+  markNotificationAsRead: (id: string) => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
 }
@@ -48,6 +68,9 @@ const MOCK_DATA: KnowledgeEntry[] = [
     tags: ['vpn', 'conexão', 'remoto'],
     reporters: ['Carlos Oliveira', 'Carlos Oliveira', 'Mariana Santos', 'Carlos Oliveira'],
     helpfulCount: 12,
+    comments: [
+      { id: 'c1', author: 'Admin', content: 'Funciona também para o erro 800 em alguns casos.', createdAt: new Date().toISOString() }
+    ],
     createdAt: new Date().toISOString(),
   },
   {
@@ -59,19 +82,14 @@ const MOCK_DATA: KnowledgeEntry[] = [
     tags: ['senha', 'acesso', 'bloqueio'],
     reporters: ['Ricardo Silva', 'Ana Paula', 'Ricardo Silva'],
     helpfulCount: 45,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    title: 'Outlook não abre',
-    description: 'O Outlook fica travado na tela de "Processando" ou "Carregando Perfil".',
-    solution: 'Executar o comando outlook.exe /safe. Se abrir, desabilitar suplementos de terceiros.',
-    category: 'Email',
-    tags: ['outlook', 'office', 'email'],
-    reporters: ['Fernanda Lima'],
-    helpfulCount: 8,
+    comments: [],
     createdAt: new Date().toISOString(),
   }
+];
+
+const MOCK_NOTIFICATIONS: Notification[] = [
+  { id: 'n1', title: 'Nova Solução', description: 'Uma nova solução para Outlook foi adicionada.', type: 'success', read: false, createdAt: new Date().toISOString() },
+  { id: 'n2', title: 'Manutenção', description: 'O servidor de AD passará por manutenção hoje às 22h.', type: 'warning', read: false, createdAt: new Date().toISOString() }
 ];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -90,6 +108,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const saved = localStorage.getItem('support_notifications');
+    return saved ? JSON.parse(saved) : MOCK_NOTIFICATIONS;
+  });
+
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   useEffect(() => {
@@ -99,6 +122,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('support_favorites', JSON.stringify(favorites));
   }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem('support_notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -125,14 +152,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const addEntry = (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'helpfulCount'>) => {
+  const addEntry = (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'helpfulCount' | 'comments'>) => {
     const newEntry: KnowledgeEntry = {
       ...entry,
       id: Math.random().toString(36).substr(2, 9),
       helpfulCount: 0,
+      comments: [],
       createdAt: new Date().toISOString(),
     };
     setKnowledgeBase(prev => [newEntry, ...prev]);
+    
+    // Adicionar notificação de nova entrada
+    const newNotif: Notification = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: 'Novo Registro',
+      description: `"${entry.title}" foi adicionado à base.`,
+      type: 'info',
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    setNotifications(prev => [newNotif, ...prev]);
   };
 
   const updateEntry = (id: string, updatedFields: Partial<KnowledgeEntry>) => {
@@ -152,11 +191,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ));
   };
 
+  const addComment = (entryId: string, content: string) => {
+    const newComment: Comment = {
+      id: Math.random().toString(36).substr(2, 9),
+      author: user?.name || 'Técnico',
+      content,
+      createdAt: new Date().toISOString()
+    };
+    setKnowledgeBase(prev => prev.map(entry => 
+      entry.id === entryId ? { ...entry, comments: [...entry.comments, newComment] } : entry
+    ));
+  };
+
+  const markNotificationAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   return (
     <AppContext.Provider value={{ 
-      user, login, logout, knowledgeBase, favorites, toggleFavorite, addEntry, updateEntry, deleteEntry, markAsHelpful, isDarkMode, toggleDarkMode 
+      user, login, logout, knowledgeBase, favorites, notifications, toggleFavorite, addEntry, updateEntry, deleteEntry, markAsHelpful, addComment, markNotificationAsRead, isDarkMode, toggleDarkMode 
     }}>
       {children}
     </AppContext.Provider>
