@@ -1,10 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
@@ -15,7 +15,9 @@ import {
   Copy, 
   CheckCircle2,
   Clock,
-  User
+  User,
+  AlertTriangle,
+  Users
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 
@@ -25,6 +27,23 @@ const EntryDetails = () => {
   const { knowledgeBase } = useApp();
   
   const entry = knowledgeBase.find(e => e.id === id);
+
+  const reporterStats = useMemo(() => {
+    if (!entry || !entry.reporters || entry.reporters.length === 0) return null;
+    
+    const counts: Record<string, number> = {};
+    entry.reporters.forEach(name => {
+      counts[name] = (counts[name] || 0) + 1;
+    });
+    
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return {
+      topReporter: sorted[0][0],
+      topCount: sorted[0][1],
+      totalReports: entry.reporters.length,
+      allReporters: sorted
+    };
+  }, [entry]);
 
   if (!entry) {
     return (
@@ -75,26 +94,61 @@ const EntryDetails = () => {
               <Calendar className="w-4 h-4" />
               {new Date(entry.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
             </div>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              {new Date(entry.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-            </div>
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight leading-tight">{entry.title}</h1>
         </div>
 
-        <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" /> Descrição do Problema
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground leading-relaxed text-lg">
-              {entry.description}
-            </p>
-          </CardContent>
-        </Card>
+        {/* Alerta de Recorrência */}
+        {reporterStats && reporterStats.totalReports > 1 && (
+          <Card className="border-none bg-amber-500/10 border border-amber-500/20 shadow-sm">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-600">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-amber-800 dark:text-amber-400">Problema Recorrente Detectado</h3>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Este problema foi reportado <strong>{reporterStats.totalReports} vezes</strong>. 
+                  O usuário <strong>{reporterStats.topReporter}</strong> é quem mais reclama ({reporterStats.topCount} ocorrências).
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-2 border-none shadow-lg bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="w-5 h-5 text-primary" /> Descrição do Problema
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground leading-relaxed">
+                {entry.description}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" /> Histórico de Usuários
+              </CardTitle>
+              <CardDescription>Quem reportou este erro</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
+                {reporterStats?.allReporters.map(([name, count]) => (
+                  <div key={name} className="px-4 py-2 flex justify-between items-center">
+                    <span className="text-sm font-medium">{name}</span>
+                    <Badge variant="secondary" className="text-[10px]">{count}x</Badge>
+                  </div>
+                )) || <p className="p-4 text-xs text-muted-foreground">Nenhum usuário registrado.</p>}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="relative">
           <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl blur opacity-10"></div>
@@ -127,24 +181,6 @@ const EntryDetails = () => {
             </Badge>
           ))}
         </div>
-
-        {relatedEntries.length > 0 && (
-          <div className="pt-12 space-y-6">
-            <h2 className="text-2xl font-bold">Soluções Relacionadas</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {relatedEntries.map(related => (
-                <Link key={related.id} to={`/entry/${related.id}`}>
-                  <Card className="h-full hover:border-primary/50 transition-all group cursor-pointer border-border/50">
-                    <CardContent className="p-4 space-y-2">
-                      <Badge variant="outline" className="text-[9px] uppercase">{related.category}</Badge>
-                      <h4 className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors">{related.title}</h4>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

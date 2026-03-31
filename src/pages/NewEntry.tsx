@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { showSuccess } from '@/utils/toast';
-import { Save, X, Tag as TagIcon, AlertCircle } from 'lucide-react';
+import { Save, X, Tag as TagIcon, AlertCircle, Users } from 'lucide-react';
 
 const NewEntry = () => {
   const { addEntry } = useApp();
@@ -21,18 +21,21 @@ const NewEntry = () => {
   const [solution, setSolution] = useState('');
   const [category, setCategory] = useState<Category>('Sistema');
   const [tagsInput, setTagsInput] = useState('');
+  const [reportersInput, setReportersInput] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t !== '');
+    const reporters = reportersInput.split(',').map(r => r.trim()).filter(r => r !== '');
     
     addEntry({
       title,
       description,
       solution,
       category,
-      tags
+      tags,
+      reporters
     });
 
     showSuccess('Solução cadastrada com sucesso na base!');
@@ -104,6 +107,21 @@ const NewEntry = () => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="reporters">Usuários Afetados (separados por vírgula)</Label>
+              <div className="relative">
+                <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  id="reporters" 
+                  placeholder="João Silva, Maria Souza..." 
+                  className="pl-10 h-11 rounded-xl"
+                  value={reportersInput}
+                  onChange={(e) => setReportersInput(e.target.value)}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">Repita o nome se o mesmo usuário teve o problema várias vezes.</p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="description">Descrição Detalhada</Label>
               <Textarea 
                 id="description" 
@@ -125,13 +143,6 @@ const NewEntry = () => {
                 onChange={(e) => setSolution(e.target.value)}
                 required
               />
-            </div>
-
-            <div className="p-4 bg-blue-500/5 rounded-xl border border-blue-500/20 flex gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-500 shrink-0" />
-              <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                Ao salvar, este registro ficará disponível imediatamente para todos os técnicos através do assistente de busca no dashboard.
-              </p>
             </div>
           </CardContent>
           <CardFooter className="bg-accent/30 p-6 flex justify-end">

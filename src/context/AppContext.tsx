@@ -11,6 +11,7 @@ export interface KnowledgeEntry {
   solution: string;
   category: Category;
   tags: string[];
+  reporters: string[]; // Lista de nomes de usuários que tiveram este problema
   createdAt: string;
 }
 
@@ -43,6 +44,7 @@ const MOCK_DATA: KnowledgeEntry[] = [
     solution: 'Verificar se o relógio do sistema está sincronizado e reiniciar o serviço de Isolamento de Chave CNG.',
     category: 'Rede',
     tags: ['vpn', 'conexão', 'remoto'],
+    reporters: ['Carlos Oliveira', 'Carlos Oliveira', 'Mariana Santos', 'Carlos Oliveira'],
     createdAt: new Date().toISOString(),
   },
   {
@@ -52,6 +54,7 @@ const MOCK_DATA: KnowledgeEntry[] = [
     solution: 'Acessar o AD Users and Computers, localizar o usuário, clicar com botão direito > Reset Password e desmarcar "Account is locked".',
     category: 'AD',
     tags: ['senha', 'acesso', 'bloqueio'],
+    reporters: ['Ricardo Silva', 'Ana Paula', 'Ricardo Silva'],
     createdAt: new Date().toISOString(),
   },
   {
@@ -61,6 +64,7 @@ const MOCK_DATA: KnowledgeEntry[] = [
     solution: 'Executar o comando outlook.exe /safe. Se abrir, desabilitar suplementos de terceiros.',
     category: 'Email',
     tags: ['outlook', 'office', 'email'],
+    reporters: ['Fernanda Lima'],
     createdAt: new Date().toISOString(),
   }
 ];
