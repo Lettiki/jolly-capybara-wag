@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, ArrowRight, Search } from 'lucide-react';
+import { Send, Bot, User, Sparkles, ArrowRight, Search, Plus } from 'lucide-react';
 import { useApp, KnowledgeEntry } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

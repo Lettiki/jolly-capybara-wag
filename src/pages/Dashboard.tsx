@@ -5,6 +5,7 @@ import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight } from '
 import { useApp } from '@/context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Cell } from 'recharts';
 import ChatAssistant from '@/components/ChatAssistant';
