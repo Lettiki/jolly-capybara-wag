@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Search, MessageSquare, ArrowRight, Sparkles, Plus, BookOpen, AlertCircle } from 'lucide-react';
+import { Search, MessageSquare, ArrowRight, Sparkles, Plus, BookOpen, AlertCircle, TrendingUp, BarChart3 } from 'lucide-react';
 import { useApp, KnowledgeEntry } from '@/context/AppContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 const Dashboard = () => {
   const { knowledgeBase, user } = useApp();
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<KnowledgeEntry[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -38,6 +40,16 @@ const Dashboard = () => {
     }).length,
     categories: new Set(knowledgeBase.map(e => e.category)).size
   }), [knowledgeBase]);
+
+  const chartData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    knowledgeBase.forEach(e => {
+      counts[e.category] = (counts[e.category] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [knowledgeBase]);
+
+  const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#64748b'];
 
   return (
     <div className="space-y-10 pb-10">
@@ -125,19 +137,16 @@ const Dashboard = () => {
               <MessageSquare className="w-5 h-5 text-primary" />
               {results.length > 0 ? `Encontramos ${results.length} soluções` : 'Nenhuma solução encontrada'}
             </h3>
-            {results.length === 0 && (
-              <Link to="/new">
-                <Button variant="outline" className="gap-2 rounded-xl">
-                  <Plus className="w-4 h-4" />
-                  Cadastrar Novo Problema
-                </Button>
-              </Link>
-            )}
+            <Button variant="ghost" onClick={() => setHasSearched(false)} className="text-sm">Limpar busca</Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {results.map((entry) => (
-              <Card key={entry.id} className="group hover:shadow-xl transition-all duration-300 border-none bg-card/50 backdrop-blur-sm">
+              <Card 
+                key={entry.id} 
+                className="group hover:shadow-xl transition-all duration-300 border-none bg-card/50 backdrop-blur-sm cursor-pointer"
+                onClick={() => navigate(`/entry/${entry.id}`)}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant="secondary" className="rounded-lg px-3 py-1 bg-primary/10 text-primary border-none">
@@ -153,14 +162,19 @@ const Dashboard = () => {
                   <p className="text-muted-foreground line-clamp-2 text-sm">{entry.description}</p>
                   <div className="p-4 bg-accent/50 rounded-xl border border-border/50">
                     <p className="text-xs font-bold uppercase text-primary mb-1">Solução Sugerida:</p>
-                    <p className="text-sm font-medium leading-relaxed">{entry.solution}</p>
+                    <p className="text-sm font-medium leading-relaxed line-clamp-2">{entry.solution}</p>
                   </div>
-                  <div className="flex flex-wrap gap-1 pt-2">
-                    {entry.tags.map(tag => (
-                      <span key={tag} className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                        #{tag}
-                      </span>
-                    ))}
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex flex-wrap gap-1">
+                      {entry.tags.slice(0, 3).map(tag => (
+                        <span key={tag} className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-primary flex items-center gap-1">
+                      Ver detalhes <ArrowRight className="w-3 h-3" />
+                    </span>
                   </div>
                 </CardContent>
               </Card>
@@ -186,59 +200,73 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Quick Actions */}
+      {/* Analytics & Quick Actions */}
       {!hasSearched && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-none bg-blue-500/5 hover:bg-blue-500/10 transition-colors cursor-pointer group">
-            <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
-              <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-600 group-hover:scale-110 transition-transform">
-                <BookOpen className="w-8 h-8" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <Card className="lg:col-span-2 border-none shadow-lg bg-card/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary" /> Distribuição por Categoria
+                </CardTitle>
+                <CardDescription>Volume de registros técnicos por área</CardDescription>
               </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-lg">Explorar Base</h3>
-                <p className="text-sm text-muted-foreground">Navegue por todas as soluções cadastradas no sistema.</p>
-              </div>
-              <Link to="/knowledge" className="w-full">
-                <Button variant="ghost" className="w-full gap-2 group-hover:translate-x-1 transition-transform">
-                  Ver Tudo <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
+            </CardHeader>
+            <CardContent className="h-[300px] pt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12 }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                  />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          <Card className="border-none bg-emerald-500/5 hover:bg-emerald-500/10 transition-colors cursor-pointer group">
-            <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
-              <div className="p-3 bg-emerald-500/20 rounded-2xl text-emerald-600 group-hover:scale-110 transition-transform">
-                <Plus className="w-8 h-8" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-lg">Novo Registro</h3>
-                <p className="text-sm text-muted-foreground">Encontrou uma solução nova? Registre-a agora mesmo.</p>
-              </div>
-              <Link to="/new" className="w-full">
-                <Button variant="ghost" className="w-full gap-2 group-hover:translate-x-1 transition-transform">
-                  Criar Agora <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card className="border-none bg-blue-500/5 hover:bg-blue-500/10 transition-colors cursor-pointer group">
+              <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
+                <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-600 group-hover:scale-110 transition-transform">
+                  <BookOpen className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-lg">Explorar Base</h3>
+                  <p className="text-sm text-muted-foreground">Navegue por todas as soluções cadastradas.</p>
+                </div>
+                <Link to="/knowledge" className="w-full">
+                  <Button variant="ghost" className="w-full gap-2 group-hover:translate-x-1 transition-transform">
+                    Ver Tudo <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-          <Card className="border-none bg-purple-500/5 hover:bg-purple-500/10 transition-colors cursor-pointer group">
-            <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
-              <div className="p-3 bg-purple-500/20 rounded-2xl text-purple-600 group-hover:scale-110 transition-transform">
-                <Settings className="w-8 h-8" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-lg">Configurações</h3>
-                <p className="text-sm text-muted-foreground">Ajuste suas preferências e dados de perfil técnico.</p>
-              </div>
-              <Link to="/profile" className="w-full">
-                <Button variant="ghost" className="w-full gap-2 group-hover:translate-x-1 transition-transform">
-                  Acessar Perfil <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+            <Card className="border-none bg-emerald-500/5 hover:bg-emerald-500/10 transition-colors cursor-pointer group">
+              <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
+                <div className="p-3 bg-emerald-500/20 rounded-2xl text-emerald-600 group-hover:scale-110 transition-transform">
+                  <Plus className="w-8 h-8" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-lg">Novo Registro</h3>
+                  <p className="text-sm text-muted-foreground">Encontrou uma solução nova? Registre-a.</p>
+                </div>
+                <Link to="/new" className="w-full">
+                  <Button variant="ghost" className="w-full gap-2 group-hover:translate-x-1 transition-transform">
+                    Criar Agora <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </div>

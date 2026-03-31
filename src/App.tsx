@@ -8,6 +8,8 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import NewEntry from "./pages/NewEntry";
+import EditEntry from "./pages/EditEntry";
+import EntryDetails from "./pages/EntryDetails";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -31,6 +33,8 @@ const App = () => (
             <Route path="/" element={<Layout><Dashboard /></Layout>} />
             <Route path="/knowledge" element={<Layout><KnowledgeBase /></Layout>} />
             <Route path="/new" element={<Layout><NewEntry /></Layout>} />
+            <Route path="/edit/:id" element={<Layout><EditEntry /></Layout>} />
+            <Route path="/entry/:id" element={<Layout><EntryDetails /></Layout>} />
             <Route path="/profile" element={<Layout><Profile /></Layout>} />
 
             {/* Catch-all */}
