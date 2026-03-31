@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail } from 'lucide-react';
+import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail, Users, Trophy } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,18 @@ const Dashboard = () => {
       return (now.getTime() - date.getTime()) < (7 * 24 * 60 * 60 * 1000);
     }).length,
   }), [knowledgeBase]);
+
+  const topReporters = useMemo(() => {
+    const counts: Record<string, number> = {};
+    knowledgeBase.forEach(entry => {
+      entry.reporters?.forEach(name => {
+        counts[name] = (counts[name] || 0) + 1;
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+  }, [knowledgeBase]);
 
   const recentEntries = useMemo(() => {
     return [...knowledgeBase].sort((a, b) => 
@@ -49,7 +61,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">Olá, {user?.name}! 👋</h1>
@@ -77,7 +88,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Status Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {systemStatus.map((sys) => (
           <Card key={sys.name} className="border-none shadow-sm bg-card/50">
@@ -104,7 +114,6 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Chat Assistant */}
         <div className="lg:col-span-7 space-y-8">
           <ChatAssistant />
           
@@ -138,14 +147,42 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Right Column: Activity & Quick Actions */}
         <div className="lg:col-span-5 space-y-8">
+          <Card className="border-none shadow-lg overflow-hidden">
+            <CardHeader className="bg-primary/5">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-500" /> Ranking de Incidentes
+              </CardTitle>
+              <CardDescription>Usuários com maior volume de chamados</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
+                {topReporters.length > 0 ? topReporters.map(([name, count], index) => (
+                  <div key={name} className="p-4 flex items-center justify-between hover:bg-accent/30 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
+                        index === 0 ? "bg-amber-500 text-white" : "bg-accent text-muted-foreground"
+                      )}>
+                        {index + 1}
+                      </div>
+                      <span className="text-sm font-medium">{name}</span>
+                    </div>
+                    <Badge variant="secondary" className="rounded-lg">{count} chamados</Badge>
+                  </div>
+                )) : (
+                  <div className="p-8 text-center text-sm text-muted-foreground">Nenhum dado disponível</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-none shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
                 <Clock className="w-5 h-5 text-primary" /> Atividade Recente
               </CardTitle>
-              <CardDescription>Últimas soluções adicionadas à base</CardDescription>
+              <CardDescription>Últimas soluções adicionadas</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
@@ -168,51 +205,8 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-              <div className="p-4 border-t border-border">
-                <Link to="/knowledge">
-                  <Button variant="ghost" className="w-full text-xs font-bold uppercase tracking-wider">
-                    Ver Base Completa
-                  </Button>
-                </Link>
-              </div>
             </CardContent>
           </Card>
-
-          <div className="grid grid-cols-1 gap-4">
-            <Card className="border-none bg-emerald-500/5 hover:bg-emerald-500/10 transition-colors cursor-pointer group">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="p-3 bg-emerald-500/20 rounded-2xl text-emerald-600">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold">Novo Registro</h3>
-                  <p className="text-xs text-muted-foreground">Documente uma nova solução</p>
-                </div>
-                <Link to="/new">
-                  <Button size="icon" variant="ghost" className="rounded-full group-hover:translate-x-1 transition-transform">
-                    <ChevronRight className="w-5 h-5" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none bg-blue-500/5 hover:bg-blue-500/10 transition-colors cursor-pointer group">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="p-3 bg-blue-500/20 rounded-2xl text-blue-600">
-                  <BookOpen className="w-6 h-6" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold">Explorar Base</h3>
-                  <p className="text-xs text-muted-foreground">Consulte o acervo técnico</p>
-                </div>
-                <Link to="/knowledge">
-                  <Button size="icon" variant="ghost" className="rounded-full group-hover:translate-x-1 transition-transform">
-                    <ChevronRight className="w-5 h-5" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </div>

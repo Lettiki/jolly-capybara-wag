@@ -17,7 +17,8 @@ import {
   Tag as TagIcon,
   MoreVertical,
   Star,
-  Copy
+  Copy,
+  Download
 } from 'lucide-react';
 import { 
   DropdownMenu, 
@@ -68,6 +69,17 @@ const KnowledgeBase = () => {
     showSuccess('Solução copiada!');
   };
 
+  const exportData = () => {
+    const dataStr = JSON.stringify(knowledgeBase, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = 'base-conhecimento-suporte.json';
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    showSuccess('Base de conhecimento exportada com sucesso!');
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -75,12 +87,16 @@ const KnowledgeBase = () => {
           <h1 className="text-3xl font-bold tracking-tight">Base de Conhecimento</h1>
           <p className="text-muted-foreground">Gerencie e consulte todas as soluções técnicas registradas.</p>
         </div>
-        <Link to="/new">
-          <Button className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20">
-            <Plus className="w-5 h-5" />
-            Novo Registro
+        <div className="flex gap-3">
+          <Button variant="outline" className="gap-2 rounded-xl h-11" onClick={exportData}>
+            <Download className="w-4 h-4" /> Exportar JSON
           </Button>
-        </Link>
+          <Link to="/new">
+            <Button className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20">
+              <Plus className="w-5 h-5" /> Novo Registro
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
@@ -135,7 +151,7 @@ const KnowledgeBase = () => {
                         <Badge variant="outline" className="rounded-md font-bold text-[10px] uppercase tracking-wider">
                           {entry.category}
                         </Badge>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
                           {new Date(entry.createdAt).toLocaleDateString('pt-BR')}
                         </div>
