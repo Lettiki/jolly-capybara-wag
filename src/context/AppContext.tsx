@@ -11,7 +11,8 @@ export interface KnowledgeEntry {
   solution: string;
   category: Category;
   tags: string[];
-  reporters: string[]; // Lista de nomes de usuários que tiveram este problema
+  reporters: string[];
+  helpfulCount: number; // Nova métrica de utilidade
   createdAt: string;
 }
 
@@ -27,9 +28,10 @@ interface AppContextType {
   knowledgeBase: KnowledgeEntry[];
   favorites: string[];
   toggleFavorite: (id: string) => void;
-  addEntry: (entry: Omit<KnowledgeEntry, 'id' | 'createdAt'>) => void;
+  addEntry: (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'helpfulCount'>) => void;
   updateEntry: (id: string, entry: Partial<KnowledgeEntry>) => void;
   deleteEntry: (id: string) => void;
+  markAsHelpful: (id: string) => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
 }
@@ -45,6 +47,7 @@ const MOCK_DATA: KnowledgeEntry[] = [
     category: 'Rede',
     tags: ['vpn', 'conexão', 'remoto'],
     reporters: ['Carlos Oliveira', 'Carlos Oliveira', 'Mariana Santos', 'Carlos Oliveira'],
+    helpfulCount: 12,
     createdAt: new Date().toISOString(),
   },
   {
@@ -55,6 +58,7 @@ const MOCK_DATA: KnowledgeEntry[] = [
     category: 'AD',
     tags: ['senha', 'acesso', 'bloqueio'],
     reporters: ['Ricardo Silva', 'Ana Paula', 'Ricardo Silva'],
+    helpfulCount: 45,
     createdAt: new Date().toISOString(),
   },
   {
@@ -65,6 +69,7 @@ const MOCK_DATA: KnowledgeEntry[] = [
     category: 'Email',
     tags: ['outlook', 'office', 'email'],
     reporters: ['Fernanda Lima'],
+    helpfulCount: 8,
     createdAt: new Date().toISOString(),
   }
 ];
@@ -120,10 +125,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const addEntry = (entry: Omit<KnowledgeEntry, 'id' | 'createdAt'>) => {
+  const addEntry = (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'helpfulCount'>) => {
     const newEntry: KnowledgeEntry = {
       ...entry,
       id: Math.random().toString(36).substr(2, 9),
+      helpfulCount: 0,
       createdAt: new Date().toISOString(),
     };
     setKnowledgeBase(prev => [newEntry, ...prev]);
@@ -140,11 +146,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFavorites(prev => prev.filter(favId => favId !== id));
   };
 
+  const markAsHelpful = (id: string) => {
+    setKnowledgeBase(prev => prev.map(entry => 
+      entry.id === id ? { ...entry, helpfulCount: entry.helpfulCount + 1 } : entry
+    ));
+  };
+
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   return (
     <AppContext.Provider value={{ 
-      user, login, logout, knowledgeBase, favorites, toggleFavorite, addEntry, updateEntry, deleteEntry, isDarkMode, toggleDarkMode 
+      user, login, logout, knowledgeBase, favorites, toggleFavorite, addEntry, updateEntry, deleteEntry, markAsHelpful, isDarkMode, toggleDarkMode 
     }}>
       {children}
     </AppContext.Provider>

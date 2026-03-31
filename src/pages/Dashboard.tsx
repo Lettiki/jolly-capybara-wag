@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail, Users, Trophy } from 'lucide-react';
+import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail, Users, Trophy, Star } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,7 @@ import ChatAssistant from '@/components/ChatAssistant';
 import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
-  const { knowledgeBase, user } = useApp();
+  const { knowledgeBase, user, favorites } = useApp();
   const navigate = useNavigate();
 
   const stats = useMemo(() => ({
@@ -23,6 +23,10 @@ const Dashboard = () => {
       return (now.getTime() - date.getTime()) < (7 * 24 * 60 * 60 * 1000);
     }).length,
   }), [knowledgeBase]);
+
+  const favoriteEntries = useMemo(() => {
+    return knowledgeBase.filter(e => favorites.includes(e.id)).slice(0, 4);
+  }, [knowledgeBase, favorites]);
 
   const topReporters = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -112,6 +116,28 @@ const Dashboard = () => {
           </Card>
         ))}
       </div>
+
+      {favoriteEntries.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Star className="w-5 h-5 text-amber-500 fill-amber-500" /> Acesso Rápido (Favoritos)
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {favoriteEntries.map(entry => (
+              <Card 
+                key={entry.id} 
+                className="border-none shadow-md hover:shadow-xl transition-all cursor-pointer group bg-gradient-to-br from-card to-accent/20"
+                onClick={() => navigate(`/entry/${entry.id}`)}
+              >
+                <CardContent className="p-4 space-y-2">
+                  <Badge variant="outline" className="text-[9px] uppercase">{entry.category}</Badge>
+                  <p className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors">{entry.title}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-7 space-y-8">

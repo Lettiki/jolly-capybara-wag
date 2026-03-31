@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
@@ -17,14 +17,17 @@ import {
   Clock,
   User,
   AlertTriangle,
-  Users
+  Users,
+  ThumbsUp,
+  ThumbsDown
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 
 const EntryDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { knowledgeBase } = useApp();
+  const { knowledgeBase, markAsHelpful } = useApp();
+  const [hasVoted, setHasVoted] = useState(false);
   
   const entry = knowledgeBase.find(e => e.id === id);
 
@@ -54,13 +57,17 @@ const EntryDetails = () => {
     );
   }
 
-  const relatedEntries = knowledgeBase
-    .filter(e => e.id !== entry.id && (e.category === entry.category || e.tags.some(t => entry.tags.includes(t))))
-    .slice(0, 3);
-
   const copyToClipboard = () => {
     navigator.clipboard.writeText(entry.solution);
     showSuccess('Solução copiada para a área de transferência!');
+  };
+
+  const handleHelpful = () => {
+    if (!hasVoted) {
+      markAsHelpful(entry.id);
+      setHasVoted(true);
+      showSuccess('Obrigado pelo seu feedback!');
+    }
   };
 
   return (
@@ -94,11 +101,13 @@ const EntryDetails = () => {
               <Calendar className="w-4 h-4" />
               {new Date(entry.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
             </div>
+            <Badge variant="secondary" className="rounded-lg gap-1.5">
+              <ThumbsUp className="w-3 h-3" /> {entry.helpfulCount} úteis
+            </Badge>
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight leading-tight">{entry.title}</h1>
         </div>
 
-        {/* Alerta de Recorrência */}
         {reporterStats && reporterStats.totalReports > 1 && (
           <Card className="border-none bg-amber-500/10 border border-amber-500/20 shadow-sm">
             <CardContent className="p-4 flex items-center gap-4">
@@ -170,6 +179,26 @@ const EntryDetails = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 bg-accent/30 rounded-3xl border border-border">
+          <div className="space-y-1">
+            <h4 className="font-bold text-lg">Esta solução foi útil?</h4>
+            <p className="text-sm text-muted-foreground">Seu feedback ajuda a priorizar as melhores soluções.</p>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              variant={hasVoted ? "secondary" : "outline"} 
+              className="rounded-xl gap-2 h-12 px-6"
+              onClick={handleHelpful}
+              disabled={hasVoted}
+            >
+              <ThumbsUp className={cn("w-5 h-5", hasVoted ? "fill-primary" : "")} /> Sim, ajudou
+            </Button>
+            <Button variant="outline" className="rounded-xl gap-2 h-12 px-6" disabled={hasVoted}>
+              <ThumbsDown className="w-5 h-5" /> Não muito
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2 pt-4">
