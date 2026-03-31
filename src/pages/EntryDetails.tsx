@@ -35,6 +35,10 @@ const EntryDetails = () => {
     );
   }
 
+  const relatedEntries = knowledgeBase
+    .filter(e => e.id !== entry.id && (e.category === entry.category || e.tags.some(t => entry.tags.includes(t))))
+    .slice(0, 3);
+
   const copyToClipboard = () => {
     navigator.clipboard.writeText(entry.solution);
     showSuccess('Solução copiada para a área de transferência!');
@@ -123,6 +127,24 @@ const EntryDetails = () => {
             </Badge>
           ))}
         </div>
+
+        {relatedEntries.length > 0 && (
+          <div className="pt-12 space-y-6">
+            <h2 className="text-2xl font-bold">Soluções Relacionadas</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {relatedEntries.map(related => (
+                <Link key={related.id} to={`/entry/${related.id}`}>
+                  <Card className="h-full hover:border-primary/50 transition-all group cursor-pointer border-border/50">
+                    <CardContent className="p-4 space-y-2">
+                      <Badge variant="outline" className="text-[9px] uppercase">{related.category}</Badge>
+                      <h4 className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors">{related.title}</h4>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
