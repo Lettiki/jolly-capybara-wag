@@ -12,8 +12,6 @@ export interface KnowledgeEntry {
   category: Category;
   tags: string[];
   createdAt: string;
-  upvotes: number;
-  downvotes: number;
 }
 
 export interface User {
@@ -28,10 +26,9 @@ interface AppContextType {
   knowledgeBase: KnowledgeEntry[];
   favorites: string[];
   toggleFavorite: (id: string) => void;
-  addEntry: (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'upvotes' | 'downvotes'>) => void;
+  addEntry: (entry: Omit<KnowledgeEntry, 'id' | 'createdAt'>) => void;
   updateEntry: (id: string, entry: Partial<KnowledgeEntry>) => void;
   deleteEntry: (id: string) => void;
-  voteEntry: (id: string, type: 'up' | 'down') => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
 }
@@ -47,8 +44,6 @@ const MOCK_DATA: KnowledgeEntry[] = [
     category: 'Rede',
     tags: ['vpn', 'conexão', 'remoto'],
     createdAt: new Date().toISOString(),
-    upvotes: 12,
-    downvotes: 1,
   },
   {
     id: '2',
@@ -58,8 +53,6 @@ const MOCK_DATA: KnowledgeEntry[] = [
     category: 'AD',
     tags: ['senha', 'acesso', 'bloqueio'],
     createdAt: new Date().toISOString(),
-    upvotes: 45,
-    downvotes: 0,
   },
   {
     id: '3',
@@ -69,8 +62,6 @@ const MOCK_DATA: KnowledgeEntry[] = [
     category: 'Email',
     tags: ['outlook', 'office', 'email'],
     createdAt: new Date().toISOString(),
-    upvotes: 28,
-    downvotes: 2,
   }
 ];
 
@@ -125,13 +116,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const addEntry = (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'upvotes' | 'downvotes'>) => {
+  const addEntry = (entry: Omit<KnowledgeEntry, 'id' | 'createdAt'>) => {
     const newEntry: KnowledgeEntry = {
       ...entry,
       id: Math.random().toString(36).substr(2, 9),
       createdAt: new Date().toISOString(),
-      upvotes: 0,
-      downvotes: 0,
     };
     setKnowledgeBase(prev => [newEntry, ...prev]);
   };
@@ -147,24 +136,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFavorites(prev => prev.filter(favId => favId !== id));
   };
 
-  const voteEntry = (id: string, type: 'up' | 'down') => {
-    setKnowledgeBase(prev => prev.map(entry => {
-      if (entry.id === id) {
-        return {
-          ...entry,
-          upvotes: type === 'up' ? entry.upvotes + 1 : entry.upvotes,
-          downvotes: type === 'down' ? entry.downvotes + 1 : entry.downvotes,
-        };
-      }
-      return entry;
-    }));
-  };
-
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   return (
     <AppContext.Provider value={{ 
-      user, login, logout, knowledgeBase, favorites, toggleFavorite, addEntry, updateEntry, deleteEntry, voteEntry, isDarkMode, toggleDarkMode 
+      user, login, logout, knowledgeBase, favorites, toggleFavorite, addEntry, updateEntry, deleteEntry, isDarkMode, toggleDarkMode 
     }}>
       {children}
     </AppContext.Provider>
