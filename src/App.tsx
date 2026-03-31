@@ -11,6 +11,7 @@ import NewEntry from "./pages/NewEntry";
 import EditEntry from "./pages/EditEntry";
 import EntryDetails from "./pages/EntryDetails";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/edit/:id" element={<Layout><EditEntry /></Layout>} />
             <Route path="/entry/:id" element={<Layout><EntryDetails /></Layout>} />
             <Route path="/profile" element={<Layout><Profile /></Layout>} />
+            <Route path="/settings" element={<Layout><Settings /></Layout>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
