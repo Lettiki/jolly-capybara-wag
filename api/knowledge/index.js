@@ -26,7 +26,15 @@ export default async function handler(req, res) {
     const { title, description, solution, category, tags, reporters } = req.body;
     const { data, error } = await supabase
       .from('knowledge_entries')
-      .insert([{ title, description, solution, category, tags, reporters, user_id: decoded.id }])
+      .insert([{ 
+        title, 
+        description, 
+        solution, 
+        category, 
+        tags: tags || [], 
+        reporters: reporters || [], 
+        user_id: decoded.id 
+      }])
       .select()
       .single();
 
