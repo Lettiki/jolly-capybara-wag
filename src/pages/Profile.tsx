@@ -7,17 +7,53 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { User, Mail, Shield, Lock, Save, Bell } from 'lucide-react';
-import { showSuccess } from '@/utils/toast';
+import { User, Mail, Shield, Lock, Save, Bell, Loader2 } from 'lucide-react';
+import { showSuccess, showError } from '@/utils/toast';
 
 const Profile = () => {
-  const { user } = useApp();
+  const { user, token } = useApp();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     showSuccess('Perfil atualizado com sucesso!');
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      return showError('As senhas não coincidem');
+    }
+
+    setIsUpdating(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const json = await res.json();
+      if (json.success) {
+        showSuccess('Senha alterada com sucesso!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        showError(json.message);
+      }
+    } catch (err) {
+      showError('Erro ao alterar senha');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -42,18 +78,6 @@ const Profile = () => {
               </div>
             </CardContent>
           </Card>
-
-          <nav className="space-y-1">
-            <Button variant="secondary" className="w-full justify-start gap-3 rounded-xl h-12">
-              <User className="w-4 h-4" /> Dados Pessoais
-            </Button>
-            <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-12">
-              <Shield className="w-4 h-4" /> Segurança
-            </Button>
-            <Button variant="ghost" className="w-full justify-start gap-3 rounded-xl h-12">
-              <Bell className="w-4 h-4" /> Notificações
-            </Button>
-          </nav>
         </div>
 
         <div className="md:col-span-2 space-y-6">
@@ -63,7 +87,7 @@ const Profile = () => {
               <CardDescription>Atualize seus dados de identificação no sistema.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSave} className="space-y-4">
+              <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="profile-name">Nome Completo</Label>
@@ -84,7 +108,6 @@ const Profile = () => {
                       <Input 
                         id="profile-email" 
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
                         className="pl-10 h-11 rounded-xl"
                         disabled
                       />
@@ -103,28 +126,54 @@ const Profile = () => {
               <CardTitle>Alterar Senha</CardTitle>
               <CardDescription>Mantenha sua conta segura com uma senha forte.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current-password">Senha Atual</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="current-password" type="password" className="pl-10 h-11 rounded-xl" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent>
+              <form onSubmit={handleChangePassword} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">Nova Senha</Label>
-                  <Input id="new-password" type="password" className="h-11 rounded-xl" />
+                  <Label htmlFor="current-password">Senha Atual</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="current-password" 
+                      type="password" 
+                      className="pl-10 h-11 rounded-xl"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
-                  <Input id="confirm-password" type="password" className="h-11 rounded-xl" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">Nova Senha</Label>
+                    <Input 
+                      id="new-password" 
+                      type="password" 
+                      className="h-11 rounded-xl"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
+                    <Input 
+                      id="confirm-password" 
+                      type="password" 
+                      className="h-11 rounded-xl"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+                <div className="flex justify-end pt-2">
+                  <Button type="submit" className="rounded-xl h-11 px-6" disabled={isUpdating}>
+                    {isUpdating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                    Atualizar Senha
+                  </Button>
+                </div>
+              </form>
             </CardContent>
-            <CardFooter className="bg-accent/30 p-6 flex justify-end">
-              <Button variant="outline" className="rounded-xl h-11 px-6">Atualizar Senha</Button>
-            </CardFooter>
           </Card>
         </div>
       </div>
