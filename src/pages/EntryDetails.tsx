@@ -23,7 +23,9 @@ import {
   MessageSquare,
   Send,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  Printer,
+  Link as LinkIcon
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -96,6 +98,15 @@ const EntryDetails = () => {
     showSuccess('Solução copiada para a área de transferência!');
   };
 
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    showSuccess('Link da solução copiado!');
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   const handleHelpful = async () => {
     if (!hasVoted) {
       await markAsHelpful(entry.id);
@@ -115,17 +126,23 @@ const EntryDetails = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20 px-4 md:px-0">
-      <div className="flex items-center justify-between">
+    <div className="max-w-5xl mx-auto space-y-8 pb-20 px-4 md:px-0 print:p-0 print:max-w-none">
+      <div className="flex items-center justify-between print:hidden">
         <Button variant="ghost" onClick={() => navigate(-1)} className="rounded-xl gap-2">
           <ArrowLeft className="w-4 h-4" /> Voltar
         </Button>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" className="rounded-xl" onClick={copyToClipboard}>
+          <Button variant="outline" size="icon" className="rounded-xl" onClick={copyLink} title="Copiar Link">
+            <LinkIcon className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="rounded-xl" onClick={handlePrint} title="Imprimir">
+            <Printer className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="rounded-xl" onClick={copyToClipboard} title="Copiar Solução">
             <Copy className="w-4 h-4" />
           </Button>
           <Link to={`/edit/${entry.id}`}>
-            <Button variant="outline" size="icon" className="rounded-xl">
+            <Button variant="outline" size="icon" className="rounded-xl" title="Editar">
               <Edit2 className="w-4 h-4" />
             </Button>
           </Link>
@@ -133,9 +150,9 @@ const EntryDetails = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 space-y-8">
+        <div className="lg:col-span-8 space-y-8 print:col-span-12">
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 print:hidden">
               <Badge className="rounded-lg px-3 py-1 uppercase tracking-wider font-bold text-[10px]">
                 {entry.category}
               </Badge>
@@ -147,13 +164,19 @@ const EntryDetails = () => {
                 <ThumbsUp className="w-3 h-3" /> {entry.helpful_count} úteis
               </Badge>
             </div>
+            
+            <div className="hidden print:block border-b pb-4 mb-6">
+              <h2 className="text-sm font-bold uppercase text-primary">Base de Conhecimento Técnica</h2>
+              <p className="text-xs text-muted-foreground">Documento gerado em {new Date().toLocaleString('pt-BR')}</p>
+            </div>
+
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">{entry.title}</h1>
           </div>
 
           {reporterStats && reporterStats.totalReports > 1 && (
-            <Card className="border-none bg-amber-500/10 border border-amber-500/20 shadow-sm">
+            <Card className="border-none bg-amber-500/10 border border-amber-500/20 shadow-sm print:bg-white print:border-amber-500">
               <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-600">
+                <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-600 print:hidden">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
@@ -166,34 +189,31 @@ const EntryDetails = () => {
             </Card>
           )}
 
-          <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
+          <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm print:shadow-none print:bg-white print:border">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <User className="w-5 h-5 text-primary" /> Descrição do Problema
+                <User className="w-5 h-5 text-primary print:hidden" /> Descrição do Problema
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed print:text-black">
                 {entry.description}
               </p>
             </CardContent>
           </Card>
 
           <div className="relative">
-            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl blur opacity-10"></div>
-            <Card className="relative border-none shadow-xl overflow-hidden">
-              <div className="h-2 bg-emerald-500" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl blur opacity-10 print:hidden"></div>
+            <Card className="relative border-none shadow-xl overflow-hidden print:shadow-none print:border">
+              <div className="h-2 bg-emerald-500 print:hidden" />
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="w-6 h-6" /> Solução Técnica
+                <CardTitle className="text-xl flex items-center gap-2 text-emerald-600 dark:text-emerald-400 print:text-emerald-700">
+                  <CheckCircle2 className="w-6 h-6 print:hidden" /> Solução Técnica
                 </CardTitle>
-                <Button variant="ghost" size="sm" className="text-xs font-bold uppercase" onClick={copyToClipboard}>
-                  Copiar
-                </Button>
-              </Header>
+              </CardHeader>
               <CardContent>
-                <div className="bg-emerald-500/5 dark:bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/20">
-                  <pre className="whitespace-pre-wrap font-sans text-lg leading-relaxed">
+                <div className="bg-emerald-500/5 dark:bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/20 print:bg-white print:border-emerald-700">
+                  <pre className="whitespace-pre-wrap font-sans text-lg leading-relaxed print:text-black print:text-base">
                     {entry.solution}
                   </pre>
                 </div>
@@ -201,7 +221,7 @@ const EntryDetails = () => {
             </Card>
           </div>
 
-          <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
+          <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm print:hidden">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-primary" /> Notas Técnicas
@@ -245,7 +265,7 @@ const EntryDetails = () => {
           </Card>
         </div>
 
-        <div className="lg:col-span-4 space-y-8">
+        <div className="lg:col-span-4 space-y-8 print:hidden">
           <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
