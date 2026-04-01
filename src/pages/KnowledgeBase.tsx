@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useDebounce } from '@/hooks/use-debounce';
 import { 
   Search, 
   Edit2, 
@@ -18,7 +19,8 @@ import {
   MoreVertical,
   Star,
   Copy,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 import { 
   DropdownMenu, 
@@ -30,36 +32,29 @@ import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 
 const KnowledgeBase = () => {
-  const { knowledgeBase, deleteEntry, favorites, toggleFavorite } = useApp();
+  const { knowledgeBase, deleteEntry, favorites, toggleFavorite, fetchEntries, isLoading } = useApp();
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'Todas' | 'Favoritos'>('Todas');
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
   useEffect(() => {
-    const query = searchParams.get('search');
-    if (query) setSearchTerm(query);
-  }, [searchParams]);
+    const categoryParam = selectedCategory !== 'Todas' && selectedCategory !== 'Favoritos' ? selectedCategory : undefined;
+    fetchEntries({ 
+      search: debouncedSearch, 
+      category: categoryParam 
+    });
+  }, [debouncedSearch, selectedCategory]);
 
   const categories: (Category | 'Todas' | 'Favoritos')[] = ['Todas', 'Favoritos', 'Rede', 'Sistema', 'AD', 'Email', 'Hardware', 'Outros'];
 
-  const filteredEntries = knowledgeBase.filter(entry => {
-    const matchesSearch = entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    let matchesCategory = true;
-    if (selectedCategory === 'Favoritos') {
-      matchesCategory = favorites.includes(entry.id);
-    } else if (selectedCategory !== 'Todas') {
-      matchesCategory = entry.category === selectedCategory;
-    }
+  const displayEntries = selectedCategory === 'Favoritos' 
+    ? knowledgeBase.filter(e => favorites.includes(e.id))
+    : knowledgeBase;
 
-    return matchesSearch && matchesCategory;
-  });
-
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir este registro?')) {
-      deleteEntry(id);
+      await deleteEntry(id);
       showSuccess('Registro excluído com sucesso.');
     }
   };
@@ -69,17 +64,6 @@ const KnowledgeBase = () => {
     showSuccess('Solução copiada!');
   };
 
-  const exportData = () => {
-    const dataStr = JSON.stringify(knowledgeBase, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = 'base-conhecimento-suporte.json';
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    showSuccess('Base de conhecimento exportada com sucesso!');
-  };
-
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -87,16 +71,11 @@ const KnowledgeBase = () => {
           <h1 className="text-3xl font-bold tracking-tight">Base de Conhecimento</h1>
           <p className="text-muted-foreground">Gerencie e consulte todas as soluções técnicas registradas.</p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="gap-2 rounded-xl h-11" onClick={exportData}>
-            <Download className="w-4 h-4" /> Exportar JSON
+        <Link to="/new">
+          <Button className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20">
+            <Plus className="w-5 h-5" /> Novo Registro
           </Button>
-          <Link to="/new">
-            <Button className="gap-2 rounded-xl h-11 px-6 shadow-lg shadow-primary/20">
-              <Plus className="w-5 h-5" /> Novo Registro
-            </Button>
-          </Link>
-        </div>
+        </Link>
       </div>
 
       <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
@@ -110,6 +89,7 @@ const KnowledgeBase = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              {isLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-primary" />}
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
               {categories.map(cat => (
@@ -133,8 +113,8 @@ const KnowledgeBase = () => {
       </Card>
 
       <div className="grid grid-cols-1 gap-4">
-        {filteredEntries.length > 0 ? (
-          filteredEntries.map((entry) => (
+        {displayEntries.length > 0 ? (
+          displayEntries.map((entry) => (
             <Card key={entry.id} className="group hover:border-primary/50 transition-all duration-300 border-border/50 shadow-sm overflow-hidden">
               <div className="flex flex-col md:flex-row">
                 <div className={cn(
@@ -221,7 +201,7 @@ const KnowledgeBase = () => {
           ))
         ) : (
           <div className="text-center py-20 bg-accent/10 rounded-3xl border-2 border-dashed border-muted">
-            <p className="text-muted-foreground">Nenhum registro encontrado com os filtros atuais.</p>
+            <p className="text-muted-foreground">Nenhum registro encontrado.</p>
           </div>
         )}
       </div>
