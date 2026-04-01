@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail, Users, Trophy, Star } from 'lucide-react';
+import React, { useMemo, useEffect, useState } from 'react';
+import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail, Users, Trophy, Star, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,17 +12,20 @@ import ChatAssistant from '@/components/ChatAssistant';
 import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
-  const { knowledgeBase, user, favorites } = useApp();
+  const { knowledgeBase, user, favorites, fetchEntries, fetchStats } = useApp();
   const navigate = useNavigate();
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const stats = useMemo(() => ({
-    total: knowledgeBase.length,
-    recent: knowledgeBase.filter(e => {
-      const date = new Date(e.createdAt);
-      const now = new Date();
-      return (now.getTime() - date.getTime()) < (7 * 24 * 60 * 60 * 1000);
-    }).length,
-  }), [knowledgeBase]);
+  useEffect(() => {
+    const loadData = async () => {
+      await fetchEntries();
+      const statsData = await fetchStats();
+      setStats(statsData);
+      setLoading(false);
+    };
+    loadData();
+  }, []);
 
   const favoriteEntries = useMemo(() => {
     return knowledgeBase.filter(e => favorites.includes(e.id)).slice(0, 4);
@@ -41,17 +44,7 @@ const Dashboard = () => {
   }, [knowledgeBase]);
 
   const recentEntries = useMemo(() => {
-    return [...knowledgeBase].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ).slice(0, 5);
-  }, [knowledgeBase]);
-
-  const chartData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    knowledgeBase.forEach(e => {
-      counts[e.category] = (counts[e.category] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    return [...knowledgeBase].slice(0, 5);
   }, [knowledgeBase]);
 
   const systemStatus = [
@@ -62,6 +55,14 @@ const Dashboard = () => {
   ];
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#64748b'];
+
+  if (loading) {
+    return (
+      <div className="h-[80vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-10">
@@ -77,7 +78,7 @@ const Dashboard = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Base Total</p>
-              <p className="text-lg font-bold leading-none">{stats.total}</p>
+              <p className="text-lg font-bold leading-none">{stats?.total || 0}</p>
             </div>
           </Card>
           <Card className="px-4 py-2 flex items-center gap-3 border-none bg-primary/5">
@@ -86,7 +87,7 @@ const Dashboard = () => {
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Novos (7d)</p>
-              <p className="text-lg font-bold leading-none">{stats.recent}</p>
+              <p className="text-lg font-bold leading-none">{stats?.recent || 0}</p>
             </div>
           </Card>
         </div>
@@ -155,7 +156,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent className="h-[250px] pt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
+                <BarChart data={stats?.byCategory || []}>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                   <Tooltip 
@@ -163,7 +164,7 @@ const Dashboard = () => {
                     cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                   />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {chartData.map((entry, index) => (
+                    {(stats?.byCategory || []).map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Bar>

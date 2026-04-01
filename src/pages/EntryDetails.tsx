@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useApp, KnowledgeEntry } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +21,8 @@ import {
   ThumbsUp,
   ThumbsDown,
   MessageSquare,
-  Send
+  Send,
+  Loader2
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -29,11 +30,23 @@ import { cn } from '@/lib/utils';
 const EntryDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { knowledgeBase, markAsHelpful, addComment, user } = useApp();
+  const { fetchEntryById, markAsHelpful, addComment, user } = useApp();
+  const [entry, setEntry] = useState<KnowledgeEntry | null>(null);
+  const [loading, setLoading] = useState(true);
   const [hasVoted, setHasVoted] = useState(false);
   const [commentInput, setCommentInput] = useState('');
-  
-  const entry = knowledgeBase.find(e => e.id === id);
+
+  const loadEntry = async () => {
+    if (id) {
+      const data = await fetchEntryById(id);
+      setEntry(data);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEntry();
+  }, [id]);
 
   const reporterStats = useMemo(() => {
     if (!entry || !entry.reporters || entry.reporters.length === 0) return null;
@@ -52,6 +65,14 @@ const EntryDetails = () => {
     };
   }, [entry]);
 
+  if (loading) {
+    return (
+      <div className="h-[80vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!entry) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -66,19 +87,21 @@ const EntryDetails = () => {
     showSuccess('Solução copiada para a área de transferência!');
   };
 
-  const handleHelpful = () => {
+  const handleHelpful = async () => {
     if (!hasVoted) {
-      markAsHelpful(entry.id);
+      await markAsHelpful(entry.id);
       setHasVoted(true);
+      setEntry(prev => prev ? { ...prev, helpful_count: prev.helpful_count + 1 } : null);
       showSuccess('Obrigado pelo seu feedback!');
     }
   };
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentInput.trim()) return;
-    addComment(entry.id, commentInput);
+    await addComment(entry.id, commentInput);
     setCommentInput('');
+    loadEntry(); // Recarrega para mostrar o novo comentário
     showSuccess('Comentário adicionado!');
   };
 
@@ -114,7 +137,7 @@ const EntryDetails = () => {
               {new Date(entry.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
             </div>
             <Badge variant="secondary" className="rounded-lg gap-1.5">
-              <ThumbsUp className="w-3 h-3" /> {entry.helpfulCount} úteis
+              <ThumbsUp className="w-3 h-3" /> {entry.helpful_count} úteis
             </Badge>
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight leading-tight">{entry.title}</h1>
@@ -193,7 +216,6 @@ const EntryDetails = () => {
           </Card>
         </div>
 
-        {/* Seção de Comentários */}
         <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -203,7 +225,7 @@ const EntryDetails = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
-              {entry.comments.length > 0 ? entry.comments.map((comment) => (
+              {entry.comments && entry.comments.length > 0 ? entry.comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                     {comment.author.charAt(0).toUpperCase()}

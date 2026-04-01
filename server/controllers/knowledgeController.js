@@ -33,7 +33,7 @@ exports.getById = (req, res) => {
   const entry = db.prepare('SELECT * FROM knowledge_entries WHERE id = ?').get(req.params.id);
   if (!entry) return res.status(404).json({ success: false, message: 'Não encontrado' });
 
-  const comments = db.prepare('SELECT * FROM comments WHERE entry_id = ?').all(req.params.id);
+  const comments = db.prepare('SELECT * FROM comments WHERE entry_id = ? ORDER BY created_at DESC').all(req.params.id);
 
   res.json({ 
     success: true, 
@@ -97,4 +97,20 @@ exports.addComment = (req, res) => {
   const stmt = db.prepare('INSERT INTO comments (entry_id, author, content) VALUES (?, ?, ?)');
   const info = stmt.run(req.params.id, author, content);
   res.json({ success: true, data: { id: info.lastInsertRowid } });
+};
+
+exports.markHelpful = (req, res) => {
+  db.prepare('UPDATE knowledge_entries SET helpful_count = helpful_count + 1 WHERE id = ?').run(req.params.id);
+  res.json({ success: true, message: 'Marcado como útil' });
+};
+
+exports.getStats = (req, res) => {
+  const total = db.prepare('SELECT COUNT(*) as count FROM knowledge_entries').get().count;
+  const recent = db.prepare("SELECT COUNT(*) as count FROM knowledge_entries WHERE created_at > datetime('now', '-7 days')").get().count;
+  const byCategory = db.prepare('SELECT category as name, COUNT(*) as value FROM knowledge_entries GROUP BY category').all();
+  
+  res.json({ 
+    success: true, 
+    data: { total, recent, byCategory } 
+  });
 };

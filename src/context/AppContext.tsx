@@ -20,7 +20,7 @@ export interface KnowledgeEntry {
   category: Category;
   tags: string[];
   reporters: string[];
-  helpfulCount: number;
+  helpful_count: number;
   comments: Comment[];
   createdAt: string;
 }
@@ -29,6 +29,15 @@ export interface User {
   id: number;
   name: string;
   email: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  type: 'info' | 'success' | 'warning';
+  read: boolean;
+  createdAt: string;
 }
 
 interface AppContextType {
@@ -41,13 +50,18 @@ interface AppContextType {
   favorites: string[];
   toggleFavorite: (id: string) => void;
   fetchEntries: (params?: { category?: string, search?: string }) => Promise<void>;
+  fetchEntryById: (id: string) => Promise<KnowledgeEntry | null>;
   addEntry: (entry: any) => Promise<void>;
   updateEntry: (id: string, entry: any) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
   addComment: (entryId: string, content: string) => Promise<void>;
+  markAsHelpful: (id: string) => Promise<void>;
+  fetchStats: () => Promise<any>;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
   isLoading: boolean;
+  notifications: Notification[];
+  markNotificationAsRead: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -59,6 +73,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [favorites, setFavorites] = useState<string[]>(JSON.parse(localStorage.getItem('support_favorites') || '[]'));
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: '1',
+      title: 'Bem-vindo!',
+      description: 'Você acessou a plataforma de suporte técnico.',
+      type: 'info',
+      read: false,
+      createdAt: new Date().toISOString()
+    }
+  ]);
 
   useEffect(() => {
     if (token) {
@@ -156,6 +180,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const fetchEntryById = async (id: string) => {
+    try {
+      const res = await fetch(`/api/knowledge/${id}`);
+      const json = await res.json();
+      if (json.success) return json.data;
+      return null;
+    } catch (err) {
+      return null;
+    }
+  };
+
   const addEntry = async (entry: any) => {
     const res = await fetch('/api/knowledge', {
       method: 'POST',
@@ -165,7 +200,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
       body: JSON.stringify(entry)
     });
-    if (res.ok) fetchEntries();
+    if (res.ok) {
+      fetchEntries();
+      setNotifications(prev => [{
+        id: Date.now().toString(),
+        title: 'Novo Registro',
+        description: `A solução "${entry.title}" foi adicionada à base.`,
+        type: 'success',
+        read: false,
+        createdAt: new Date().toISOString()
+      }, ...prev]);
+    }
   };
 
   const updateEntry = async (id: string, entry: any) => {
@@ -199,10 +244,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const markAsHelpful = async (id: string) => {
+    await fetch(`/api/knowledge/${id}/helpful`, { method: 'PUT' });
+  };
+
+  const fetchStats = async () => {
+    const res = await fetch('/api/knowledge/stats');
+    const json = await res.json();
+    return json.data;
+  };
+
   const toggleFavorite = (id: string) => {
     setFavorites(prev => 
       prev.includes(id) ? prev.filter(favId => favId !== id) : [...prev, id]
     );
+  };
+
+  const markNotificationAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
@@ -210,7 +269,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider value={{ 
       user, token, login, register, logout, knowledgeBase, favorites, toggleFavorite, 
-      fetchEntries, addEntry, updateEntry, deleteEntry, addComment, isDarkMode, toggleDarkMode, isLoading 
+      fetchEntries, fetchEntryById, addEntry, updateEntry, deleteEntry, addComment, markAsHelpful, fetchStats,
+      isDarkMode, toggleDarkMode, isLoading, notifications, markNotificationAsRead
     }}>
       {children}
     </AppContext.Provider>
