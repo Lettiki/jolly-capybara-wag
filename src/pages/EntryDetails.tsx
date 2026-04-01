@@ -22,7 +22,8 @@ import {
   ThumbsDown,
   MessageSquare,
   Send,
-  Loader2
+  Loader2,
+  ChevronRight
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,7 @@ import { cn } from '@/lib/utils';
 const EntryDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { fetchEntryById, markAsHelpful, addComment, user } = useApp();
+  const { fetchEntryById, markAsHelpful, addComment, knowledgeBase } = useApp();
   const [entry, setEntry] = useState<KnowledgeEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasVoted, setHasVoted] = useState(false);
@@ -46,7 +47,15 @@ const EntryDetails = () => {
 
   useEffect(() => {
     loadEntry();
+    window.scrollTo(0, 0);
   }, [id]);
+
+  const relatedEntries = useMemo(() => {
+    if (!entry) return [];
+    return knowledgeBase
+      .filter(e => e.id !== entry.id && (e.category === entry.category || e.tags.some(t => entry.tags.includes(t))))
+      .slice(0, 3);
+  }, [entry, knowledgeBase]);
 
   const reporterStats = useMemo(() => {
     if (!entry || !entry.reporters || entry.reporters.length === 0) return null;
@@ -101,12 +110,12 @@ const EntryDetails = () => {
     if (!commentInput.trim()) return;
     await addComment(entry.id, commentInput);
     setCommentInput('');
-    loadEntry(); // Recarrega para mostrar o novo comentário
+    loadEntry();
     showSuccess('Comentário adicionado!');
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-20">
+    <div className="max-w-5xl mx-auto space-y-8 pb-20 px-4 md:px-0">
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={() => navigate(-1)} className="rounded-xl gap-2">
           <ArrowLeft className="w-4 h-4" /> Voltar
@@ -120,48 +129,44 @@ const EntryDetails = () => {
               <Edit2 className="w-4 h-4" />
             </Button>
           </Link>
-          <Button variant="outline" size="icon" className="rounded-xl">
-            <Share2 className="w-4 h-4" />
-          </Button>
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge className="rounded-lg px-3 py-1 uppercase tracking-wider font-bold text-[10px]">
-              {entry.category}
-            </Badge>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              {new Date(entry.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge className="rounded-lg px-3 py-1 uppercase tracking-wider font-bold text-[10px]">
+                {entry.category}
+              </Badge>
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                {new Date(entry.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+              </div>
+              <Badge variant="secondary" className="rounded-lg gap-1.5">
+                <ThumbsUp className="w-3 h-3" /> {entry.helpful_count} úteis
+              </Badge>
             </div>
-            <Badge variant="secondary" className="rounded-lg gap-1.5">
-              <ThumbsUp className="w-3 h-3" /> {entry.helpful_count} úteis
-            </Badge>
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">{entry.title}</h1>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight leading-tight">{entry.title}</h1>
-        </div>
 
-        {reporterStats && reporterStats.totalReports > 1 && (
-          <Card className="border-none bg-amber-500/10 border border-amber-500/20 shadow-sm">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-600">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-amber-800 dark:text-amber-400">Problema Recorrente Detectado</h3>
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Este problema foi reportado <strong>{reporterStats.totalReports} vezes</strong>. 
-                  O usuário <strong>{reporterStats.topReporter}</strong> é quem mais reclama ({reporterStats.topCount} ocorrências).
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          {reporterStats && reporterStats.totalReports > 1 && (
+            <Card className="border-none bg-amber-500/10 border border-amber-500/20 shadow-sm">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-3 bg-amber-500/20 rounded-2xl text-amber-600">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-amber-800 dark:text-amber-400">Problema Recorrente Detectado</h3>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Este problema foi reportado <strong>{reporterStats.totalReports} vezes</strong>. 
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-2 border-none shadow-lg bg-card/50 backdrop-blur-sm">
+          <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <User className="w-5 h-5 text-primary" /> Descrição do Problema
@@ -174,12 +179,78 @@ const EntryDetails = () => {
             </CardContent>
           </Card>
 
+          <div className="relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl blur opacity-10"></div>
+            <Card className="relative border-none shadow-xl overflow-hidden">
+              <div className="h-2 bg-emerald-500" />
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-6 h-6" /> Solução Técnica
+                </CardTitle>
+                <Button variant="ghost" size="sm" className="text-xs font-bold uppercase" onClick={copyToClipboard}>
+                  Copiar
+                </Button>
+              </Header>
+              <CardContent>
+                <div className="bg-emerald-500/5 dark:bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/20">
+                  <pre className="whitespace-pre-wrap font-sans text-lg leading-relaxed">
+                    {entry.solution}
+                  </pre>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" /> Histórico de Usuários
+                <MessageSquare className="w-5 h-5 text-primary" /> Notas Técnicas
               </CardTitle>
-              <CardDescription>Quem reportou este erro</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                {entry.comments && entry.comments.length > 0 ? entry.comments.map((comment) => (
+                  <div key={comment.id} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                      {comment.author.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 bg-accent/30 p-3 rounded-2xl rounded-tl-none">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-bold">{comment.author}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(comment.createdAt).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{comment.content}</p>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-center py-4 text-sm text-muted-foreground italic">Nenhuma nota técnica adicionada.</p>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="border-t border-border p-4">
+              <form onSubmit={handleAddComment} className="flex w-full gap-2">
+                <Input 
+                  placeholder="Adicionar nota..." 
+                  className="rounded-xl h-10 bg-accent/50 border-none"
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                />
+                <Button type="submit" size="icon" className="rounded-xl shrink-0" disabled={!commentInput.trim()}>
+                  <Send className="w-4 h-4" />
+                </Button>
+              </form>
+            </CardFooter>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-4 space-y-8">
+          <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" /> Usuários Afetados
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
@@ -192,102 +263,46 @@ const EntryDetails = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="relative">
-          <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl blur opacity-10"></div>
-          <Card className="relative border-none shadow-xl overflow-hidden">
-            <div className="h-2 bg-emerald-500" />
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="w-6 h-6" /> Solução Técnica
-              </CardTitle>
-              <Button variant="ghost" size="sm" className="text-xs font-bold uppercase" onClick={copyToClipboard}>
-                Copiar Texto
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-emerald-500/5 dark:bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/20">
-                <pre className="whitespace-pre-wrap font-sans text-lg leading-relaxed">
-                  {entry.solution}
-                </pre>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="border-none shadow-lg bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-primary" /> Notas Técnicas e Colaboração
-            </CardTitle>
-            <CardDescription>Adicione observações ou atualizações sobre esta solução.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              {entry.comments && entry.comments.length > 0 ? entry.comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                    {comment.author.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 bg-accent/30 p-3 rounded-2xl rounded-tl-none">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-bold">{comment.author}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(comment.createdAt).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{comment.content}</p>
-                  </div>
-                </div>
+          <div className="space-y-4">
+            <h3 className="font-bold text-lg flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" /> Soluções Relacionadas
+            </h3>
+            <div className="space-y-3">
+              {relatedEntries.length > 0 ? relatedEntries.map(rel => (
+                <Link key={rel.id} to={`/entry/${rel.id}`}>
+                  <Card className="border-none shadow-sm hover:shadow-md transition-all group cursor-pointer bg-card/50">
+                    <CardContent className="p-4">
+                      <Badge variant="outline" className="text-[9px] mb-2 uppercase">{rel.category}</Badge>
+                      <p className="text-sm font-bold line-clamp-2 group-hover:text-primary transition-colors">{rel.title}</p>
+                      <div className="flex items-center justify-end mt-2">
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               )) : (
-                <p className="text-center py-4 text-sm text-muted-foreground italic">Nenhuma nota técnica adicionada ainda.</p>
+                <p className="text-sm text-muted-foreground italic">Nenhuma solução similar encontrada.</p>
               )}
             </div>
-          </CardContent>
-          <CardFooter className="border-t border-border p-4">
-            <form onSubmit={handleAddComment} className="flex w-full gap-2">
-              <Input 
-                placeholder="Adicionar uma nota técnica..." 
-                className="rounded-xl h-10 bg-accent/50 border-none"
-                value={commentInput}
-                onChange={(e) => setCommentInput(e.target.value)}
-              />
-              <Button type="submit" size="icon" className="rounded-xl shrink-0" disabled={!commentInput.trim()}>
-                <Send className="w-4 h-4" />
+          </div>
+
+          <div className="p-6 bg-accent/30 rounded-3xl border border-border space-y-4">
+            <h4 className="font-bold">Ajudou você?</h4>
+            <div className="flex gap-2">
+              <Button 
+                variant={hasVoted ? "secondary" : "outline"} 
+                className="flex-1 rounded-xl gap-2"
+                onClick={handleHelpful}
+                disabled={hasVoted}
+              >
+                <ThumbsUp className={cn("w-4 h-4", hasVoted && "fill-primary")} /> Sim
               </Button>
-            </form>
-          </CardFooter>
-        </Card>
-
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 bg-accent/30 rounded-3xl border border-border">
-          <div className="space-y-1">
-            <h4 className="font-bold text-lg">Esta solução foi útil?</h4>
-            <p className="text-sm text-muted-foreground">Seu feedback ajuda a priorizar as melhores soluções.</p>
+              <Button variant="outline" className="flex-1 rounded-xl gap-2" disabled={hasVoted}>
+                <ThumbsDown className="w-4 h-4" /> Não
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <Button 
-              variant={hasVoted ? "secondary" : "outline"} 
-              className="rounded-xl gap-2 h-12 px-6"
-              onClick={handleHelpful}
-              disabled={hasVoted}
-            >
-              <ThumbsUp className={cn("w-5 h-5", hasVoted ? "fill-primary" : "")} /> Sim, ajudou
-            </Button>
-            <Button variant="outline" className="rounded-xl gap-2 h-12 px-6" disabled={hasVoted}>
-              <ThumbsDown className="w-5 h-5" /> Não muito
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 pt-4">
-          <span className="text-sm font-bold text-muted-foreground mr-2 self-center">Tags Relacionadas:</span>
-          {entry.tags.map(tag => (
-            <Badge key={tag} variant="secondary" className="rounded-full px-4 py-1 bg-accent hover:bg-primary/10 transition-colors cursor-default">
-              <TagIcon className="w-3 h-3 mr-1.5" />
-              {tag}
-            </Badge>
-          ))}
         </div>
       </div>
     </div>

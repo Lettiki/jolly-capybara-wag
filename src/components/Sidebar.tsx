@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   Command,
   Bell,
-  Check
+  Menu
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
@@ -24,8 +24,10 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-const Sidebar = () => {
+const SidebarContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, isDarkMode, toggleDarkMode, user, notifications, markNotificationAsRead } = useApp();
@@ -55,7 +57,7 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="w-64 bg-card border-r border-border flex flex-col h-screen sticky top-0">
+    <div className="flex flex-col h-full bg-card">
       <div className="p-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="bg-primary p-2 rounded-lg">
@@ -123,9 +125,6 @@ const Sidebar = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 px-1.5 py-0.5 rounded border border-border bg-background text-[10px] text-muted-foreground">
-            <Command className="w-2.5 h-2.5" /> K
-          </div>
         </form>
       </div>
 
@@ -177,6 +176,34 @@ const Sidebar = () => {
           <span className="font-medium text-sm">Sair</span>
         </Button>
       </div>
+    </div>
+  );
+};
+
+const Sidebar = () => {
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+
+  if (isMobile) {
+    return (
+      <div className="fixed top-4 left-4 z-50">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" className="rounded-xl shadow-lg bg-card">
+              <Menu className="w-5 h-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72">
+            <SidebarContent />
+          </SheetContent>
+        </Sheet>
+      </div>
+    );
+  }
+
+  return (
+    <aside className="w-64 bg-card border-r border-border flex flex-col h-screen sticky top-0">
+      <SidebarContent />
     </aside>
   );
 };
