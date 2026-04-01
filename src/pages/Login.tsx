@@ -7,21 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldCheck, Mail, Lock } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, Loader2 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useApp();
+  const { login, isLoading } = useApp();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulação de login
-    login(email, email.split('@')[0]);
-    showSuccess('Bem-vindo de volta!');
-    navigate('/');
+    try {
+      await login(email, password);
+      showSuccess('Bem-vindo de volta!');
+      navigate('/');
+    } catch (err) {}
   };
 
   return (
@@ -72,20 +73,13 @@ const Login = () => {
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full h-11 rounded-xl text-base font-semibold shadow-lg shadow-primary/20">
+            <Button type="submit" className="w-full h-11 rounded-xl text-base font-semibold shadow-lg shadow-primary/20" disabled={isLoading}>
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Entrar no Sistema
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <div className="relative w-full">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Ou</span>
-            </div>
-          </div>
           <p className="text-center text-sm text-muted-foreground">
             Não tem uma conta?{' '}
             <Link to="/register" className="text-primary font-semibold hover:underline">

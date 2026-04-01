@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { showError } from '@/utils/toast';
 
 export type Category = 'Rede' | 'Sistema' | 'AD' | 'Email' | 'Hardware' | 'Outros';
 
@@ -20,130 +21,182 @@ export interface KnowledgeEntry {
   tags: string[];
   reporters: string[];
   helpfulCount: number;
-  comments: Comment[]; // Novo campo para colaboração
-  createdAt: string;
-}
-
-export interface Notification {
-  id: string;
-  title: string;
-  description: string;
-  type: 'info' | 'success' | 'warning';
-  read: boolean;
+  comments: Comment[];
   createdAt: string;
 }
 
 export interface User {
+  id: number;
   name: string;
   email: string;
 }
 
 interface AppContextType {
   user: User | null;
-  login: (email: string, name: string) => void;
+  token: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   knowledgeBase: KnowledgeEntry[];
   favorites: string[];
-  notifications: Notification[];
   toggleFavorite: (id: string) => void;
-  addEntry: (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'helpfulCount' | 'comments'>) => void;
-  updateEntry: (id: string, entry: Partial<KnowledgeEntry>) => void;
-  deleteEntry: (id: string) => void;
-  markAsHelpful: (id: string) => void;
-  addComment: (entryId: string, content: string) => void;
-  markNotificationAsRead: (id: string) => void;
+  fetchEntries: (params?: { category?: string, search?: string }) => Promise<void>;
+  addEntry: (entry: any) => Promise<void>;
+  updateEntry: (id: string, entry: any) => Promise<void>;
+  deleteEntry: (id: string) => Promise<void>;
+  addComment: (entryId: string, content: string) => Promise<void>;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  isLoading: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const MOCK_DATA: KnowledgeEntry[] = [
-  {
-    id: '1',
-    title: 'Erro de conexão VPN',
-    description: 'Usuário não consegue conectar na VPN corporativa apresentando erro 807.',
-    solution: 'Verificar se o relógio do sistema está sincronizado e reiniciar o serviço de Isolamento de Chave CNG.',
-    category: 'Rede',
-    tags: ['vpn', 'conexão', 'remoto'],
-    reporters: ['Carlos Oliveira', 'Carlos Oliveira', 'Mariana Santos', 'Carlos Oliveira'],
-    helpfulCount: 12,
-    comments: [
-      { id: 'c1', author: 'Admin', content: 'Funciona também para o erro 800 em alguns casos.', createdAt: new Date().toISOString() }
-    ],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    title: 'Reset de senha AD',
-    description: 'Solicitação de desbloqueio de conta e reset de senha no Active Directory.',
-    solution: 'Acessar o AD Users and Computers, localizar o usuário, clicar com botão direito > Reset Password e desmarcar "Account is locked".',
-    category: 'AD',
-    tags: ['senha', 'acesso', 'bloqueio'],
-    reporters: ['Ricardo Silva', 'Ana Paula', 'Ricardo Silva'],
-    helpfulCount: 45,
-    comments: [],
-    createdAt: new Date().toISOString(),
-  }
-];
-
-const MOCK_NOTIFICATIONS: Notification[] = [
-  { id: 'n1', title: 'Nova Solução', description: 'Uma nova solução para Outlook foi adicionada.', type: 'success', read: false, createdAt: new Date().toISOString() },
-  { id: 'n2', title: 'Manutenção', description: 'O servidor de AD passará por manutenção hoje às 22h.', type: 'warning', read: false, createdAt: new Date().toISOString() }
-];
-
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('support_user');
-    return saved ? JSON.parse(saved) : null;
-  });
-  
-  const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeEntry[]>(() => {
-    const saved = localStorage.getItem('knowledge_base');
-    return saved ? JSON.parse(saved) : MOCK_DATA;
-  });
-
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    const saved = localStorage.getItem('support_favorites');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const saved = localStorage.getItem('support_notifications');
-    return saved ? JSON.parse(saved) : MOCK_NOTIFICATIONS;
-  });
-
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('support_token'));
+  const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeEntry[]>([]);
+  const [favorites, setFavorites] = useState<string[]>(JSON.parse(localStorage.getItem('support_favorites') || '[]'));
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('knowledge_base', JSON.stringify(knowledgeBase));
-  }, [knowledgeBase]);
+    if (token) {
+      fetchMe();
+    }
+  }, [token]);
 
   useEffect(() => {
     localStorage.setItem('support_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
   useEffect(() => {
-    localStorage.setItem('support_notifications', JSON.stringify(notifications));
-  }, [notifications]);
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    if (isDarkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
   }, [isDarkMode]);
 
-  const login = (email: string, name: string) => {
-    const newUser = { email, name };
-    setUser(newUser);
-    localStorage.setItem('support_user', JSON.stringify(newUser));
+  const fetchMe = async () => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.success) setUser(json.data);
+      else logout();
+    } catch (err) {
+      logout();
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setToken(json.data.token);
+        setUser(json.data.user);
+        localStorage.setItem('support_token', json.data.token);
+      } else {
+        throw new Error(json.message);
+      }
+    } catch (err: any) {
+      showError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (name: string, email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setToken(json.data.token);
+        setUser(json.data.user);
+        localStorage.setItem('support_token', json.data.token);
+      } else {
+        throw new Error(json.message);
+      }
+    } catch (err: any) {
+      showError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('support_user');
+    setToken(null);
+    localStorage.removeItem('support_token');
+  };
+
+  const fetchEntries = async (params?: { category?: string, search?: string }) => {
+    setIsLoading(true);
+    try {
+      const query = new URLSearchParams(params as any).toString();
+      const res = await fetch(`/api/knowledge?${query}`);
+      const json = await res.json();
+      if (json.success) setKnowledgeBase(json.data);
+    } catch (err) {
+      showError('Erro ao carregar base de conhecimento');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addEntry = async (entry: any) => {
+    const res = await fetch('/api/knowledge', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(entry)
+    });
+    if (res.ok) fetchEntries();
+  };
+
+  const updateEntry = async (id: string, entry: any) => {
+    await fetch(`/api/knowledge/${id}`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(entry)
+    });
+    fetchEntries();
+  };
+
+  const deleteEntry = async (id: string) => {
+    await fetch(`/api/knowledge/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    fetchEntries();
+  };
+
+  const addComment = async (entryId: string, content: string) => {
+    await fetch(`/api/knowledge/${entryId}/comments`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ content, author: user?.name || 'Técnico' })
+    });
   };
 
   const toggleFavorite = (id: string) => {
@@ -152,66 +205,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const addEntry = (entry: Omit<KnowledgeEntry, 'id' | 'createdAt' | 'helpfulCount' | 'comments'>) => {
-    const newEntry: KnowledgeEntry = {
-      ...entry,
-      id: Math.random().toString(36).substr(2, 9),
-      helpfulCount: 0,
-      comments: [],
-      createdAt: new Date().toISOString(),
-    };
-    setKnowledgeBase(prev => [newEntry, ...prev]);
-    
-    // Adicionar notificação de nova entrada
-    const newNotif: Notification = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: 'Novo Registro',
-      description: `"${entry.title}" foi adicionado à base.`,
-      type: 'info',
-      read: false,
-      createdAt: new Date().toISOString()
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-  };
-
-  const updateEntry = (id: string, updatedFields: Partial<KnowledgeEntry>) => {
-    setKnowledgeBase(prev => prev.map(entry => 
-      entry.id === id ? { ...entry, ...updatedFields } : entry
-    ));
-  };
-
-  const deleteEntry = (id: string) => {
-    setKnowledgeBase(prev => prev.filter(entry => entry.id !== id));
-    setFavorites(prev => prev.filter(favId => favId !== id));
-  };
-
-  const markAsHelpful = (id: string) => {
-    setKnowledgeBase(prev => prev.map(entry => 
-      entry.id === id ? { ...entry, helpfulCount: entry.helpfulCount + 1 } : entry
-    ));
-  };
-
-  const addComment = (entryId: string, content: string) => {
-    const newComment: Comment = {
-      id: Math.random().toString(36).substr(2, 9),
-      author: user?.name || 'Técnico',
-      content,
-      createdAt: new Date().toISOString()
-    };
-    setKnowledgeBase(prev => prev.map(entry => 
-      entry.id === entryId ? { ...entry, comments: [...entry.comments, newComment] } : entry
-    ));
-  };
-
-  const markNotificationAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  };
-
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
 
   return (
     <AppContext.Provider value={{ 
-      user, login, logout, knowledgeBase, favorites, notifications, toggleFavorite, addEntry, updateEntry, deleteEntry, markAsHelpful, addComment, markNotificationAsRead, isDarkMode, toggleDarkMode 
+      user, token, login, register, logout, knowledgeBase, favorites, toggleFavorite, 
+      fetchEntries, addEntry, updateEntry, deleteEntry, addComment, isDarkMode, toggleDarkMode, isLoading 
     }}>
       {children}
     </AppContext.Provider>
