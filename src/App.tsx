@@ -13,6 +13,7 @@ import EntryDetails from "./pages/EntryDetails";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import SystemStatus from "./pages/SystemStatus";
+import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/profile" element={<Layout><Profile /></Layout>} />
             <Route path="/settings" element={<Layout><Settings /></Layout>} />
             <Route path="/status" element={<Layout><SystemStatus /></Layout>} />
+            <Route path="/admin" element={<Layout><Admin /></Layout>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

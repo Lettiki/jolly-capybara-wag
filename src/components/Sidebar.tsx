@@ -13,11 +13,11 @@ import {
   Moon,
   Sun,
   ShieldCheck,
-  Command,
   Bell,
   Menu,
   CheckCheck,
-  Activity
+  Activity,
+  Shield
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -45,6 +44,11 @@ const SidebarContent = () => {
     { icon: User, label: 'Perfil', path: '/profile' },
     { icon: Settings, label: 'Configurações', path: '/settings' },
   ];
+
+  // Adiciona Administração se for admin
+  if (user?.role === 'admin') {
+    menuItems.splice(1, 0, { icon: Shield, label: 'Administração', path: '/admin' });
+  }
 
   const handleLogout = () => {
     logout();

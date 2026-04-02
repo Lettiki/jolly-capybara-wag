@@ -1,9 +1,10 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { showError } from '@/utils/toast';
+import { showError, showSuccess } from '@/utils/toast';
 
 export type Category = 'Rede' | 'Sistema' | 'AD' | 'Email' | 'Hardware' | 'Outros';
+export type UserRole = 'admin' | 'gestor';
 
 export interface Comment {
   id: string;
@@ -26,9 +27,10 @@ export interface KnowledgeEntry {
 }
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
+  role: UserRole;
 }
 
 export interface Notification {
@@ -62,6 +64,9 @@ interface AppContextType {
   isLoading: boolean;
   notifications: Notification[];
   markNotificationAsRead: (id: string) => void;
+  // Admin functions
+  fetchAllUsers: () => Promise<User[]>;
+  updateUserRole: (userId: string, role: UserRole) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -73,16 +78,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [favorites, setFavorites] = useState<string[]>(JSON.parse(localStorage.getItem('support_favorites') || '[]'));
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'Bem-vindo!',
-      description: 'Você acessou a plataforma de suporte técnico.',
-      type: 'info',
-      read: false,
-      createdAt: new Date().toISOString()
-    }
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     if (token) {
@@ -169,22 +165,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const fetchEntries = async (params?: { category?: string, search?: string }) => {
     setIsLoading(true);
     try {
-      // Limpamos os parâmetros para não enviar strings vazias ou 'undefined'
       const cleanParams: any = {};
       if (params) {
-        if (params.category && params.category !== 'Todas' && params.category !== 'undefined') {
-          cleanParams.category = params.category;
-        }
-        if (params.search && params.search.trim() !== '' && params.search !== 'undefined') {
-          cleanParams.search = params.search;
-        }
+        if (params.category && params.category !== 'Todas') cleanParams.category = params.category;
+        if (params.search) cleanParams.search = params.search;
       }
-
       const query = new URLSearchParams(cleanParams).toString();
       const res = await fetch(`/api/knowledge?${query}`, {
-        headers: { 
-          'Authorization': `Bearer ${token}` 
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const json = await res.json();
       if (json.success) setKnowledgeBase(json.data);
@@ -217,17 +205,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
       body: JSON.stringify(entry)
     });
-    if (res.ok) {
-      fetchEntries();
-      setNotifications(prev => [{
-        id: Date.now().toString(),
-        title: 'Novo Registro',
-        description: `A solução "${entry.title}" foi adicionada à base.`,
-        type: 'success',
-        read: false,
-        createdAt: new Date().toISOString()
-      }, ...prev]);
-    }
+    if (res.ok) fetchEntries();
   };
 
   const updateEntry = async (id: string, entry: any) => {
@@ -271,12 +249,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/knowledge/stats');
-      if (!res.ok) return null;
       const json = await res.json();
       return json.success ? json.data : null;
     } catch (err) {
-      console.error("Erro ao buscar estatísticas:", err);
       return null;
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      return json.success ? json.data : [];
+    } catch (err) {
+      showError('Erro ao buscar usuários');
+      return [];
+    }
+  };
+
+  const updateUserRole = async (userId: string, role: UserRole) => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/role`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ role })
+      });
+      const json = await res.json();
+      if (json.success) showSuccess('Role atualizado!');
+      else showError(json.message);
+    } catch (err) {
+      showError('Erro ao atualizar role');
     }
   };
 
@@ -296,7 +303,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider value={{ 
       user, token, login, register, logout, knowledgeBase, favorites, toggleFavorite, 
       fetchEntries, fetchEntryById, addEntry, updateEntry, deleteEntry, addComment, markAsHelpful, fetchStats,
-      isDarkMode, toggleDarkMode, isLoading, notifications, markNotificationAsRead
+      isDarkMode, toggleDarkMode, isLoading, notifications, markNotificationAsRead,
+      fetchAllUsers, updateUserRole
     }}>
       {children}
     </AppContext.Provider>
