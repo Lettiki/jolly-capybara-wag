@@ -33,7 +33,7 @@ import { cn } from '@/lib/utils';
 const EntryDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { fetchEntryById, markAsHelpful, addComment, knowledgeBase } = useApp();
+  const { fetchEntryById, markAsHelpful, addComment, knowledgeBase, fetchEntries } = useApp();
   const [entry, setEntry] = useState<KnowledgeEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasVoted, setHasVoted] = useState(false);
@@ -44,6 +44,11 @@ const EntryDetails = () => {
       const data = await fetchEntryById(id);
       setEntry(data);
       setLoading(false);
+      
+      // Se a base global estiver vazia (acesso direto), carrega para os relacionados
+      if (knowledgeBase.length === 0) {
+        fetchEntries();
+      }
     }
   };
 
