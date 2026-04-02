@@ -19,7 +19,7 @@ import {
   MoreVertical,
   Star,
   Copy,
-  Download,
+  Share2,
   Loader2
 } from 'lucide-react';
 import { 
@@ -62,6 +62,12 @@ const KnowledgeBase = () => {
   const copySolution = (solution: string) => {
     navigator.clipboard.writeText(solution);
     showSuccess('Solução copiada!');
+  };
+
+  const shareEntry = (id: string) => {
+    const url = `${window.location.origin}/entry/${id}`;
+    navigator.clipboard.writeText(url);
+    showSuccess('Link da solução copiado!');
   };
 
   return (
@@ -157,6 +163,9 @@ const KnowledgeBase = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl">
+                          <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => shareEntry(entry.id)}>
+                            <Share2 className="w-4 h-4" /> Compartilhar
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => copySolution(entry.solution)}>
                             <Copy className="w-4 h-4" /> Copiar Solução
                           </DropdownMenuItem>

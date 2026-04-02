@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useEffect, useState } from 'react';
-import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail, Users, Trophy, Star, Loader2, Search } from 'lucide-react';
+import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail, Users, Trophy, Star, Loader2, Search, Plus, Zap } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +23,6 @@ const Dashboard = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Carrega entradas e estatísticas em paralelo
         await Promise.all([
           fetchEntries(),
           fetchStats().then(data => setStats(data)).catch(() => setStats(null))
@@ -44,10 +43,6 @@ const Dashboard = () => {
       navigate(`/knowledge?search=${encodeURIComponent(quickSearch)}`);
     }
   };
-
-  const favoriteEntries = useMemo(() => {
-    return knowledgeBase.filter(e => favorites.includes(e.id)).slice(0, 4);
-  }, [knowledgeBase, favorites]);
 
   const topReporters = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -72,6 +67,13 @@ const Dashboard = () => {
     { name: 'Active Directory', status: 'online', icon: Activity },
     { name: 'Servidor de E-mail', status: 'warning', icon: Mail },
     { name: 'Link Internet', status: 'online', icon: Globe },
+  ];
+
+  const quickActions = [
+    { label: 'Novo Registro', icon: Plus, path: '/new', color: 'bg-blue-500' },
+    { label: 'Ver Favoritos', icon: Star, path: '/knowledge?category=Favoritos', color: 'bg-amber-500' },
+    { label: 'Base Completa', icon: BookOpen, path: '/knowledge', color: 'bg-indigo-500' },
+    { label: 'Meu Perfil', icon: User, path: '/profile', color: 'bg-emerald-500' },
   ];
 
   const COLORS = ['#6366f1', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#64748b'];
@@ -106,30 +108,47 @@ const Dashboard = () => {
         </form>
       </div>
 
-      {/* Status Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {systemStatus.map((sys) => (
-          <Card key={sys.name} className="border-none shadow-lg bg-card/40 backdrop-blur-md hover:bg-card/60 transition-all rounded-3xl">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className={cn(
-                "p-3 rounded-2xl",
-                sys.status === 'online' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
-              )}>
-                <sys.icon className="w-5 h-5" />
+      {/* Quick Actions & Status Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {quickActions.map((action) => (
+            <Button
+              key={action.label}
+              variant="ghost"
+              className="h-auto p-6 flex flex-col items-center gap-3 rounded-3xl bg-card/40 backdrop-blur-md hover:bg-card/60 border-none shadow-lg transition-all group"
+              onClick={() => navigate(action.path)}
+            >
+              <div className={cn("p-3 rounded-2xl text-white shadow-lg group-hover:scale-110 transition-transform", action.color)}>
+                <action.icon className="w-6 h-6" />
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest truncate">{sys.name}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className={cn(
-                    "w-2 h-2 rounded-full animate-pulse",
-                    sys.status === 'online' ? "bg-emerald-500" : "bg-amber-500"
-                  )} />
-                  <span className="text-sm font-bold capitalize">{sys.status}</span>
+              <span className="text-xs font-bold tracking-tight">{action.label}</span>
+            </Button>
+          ))}
+        </div>
+        <div className="lg:col-span-4 grid grid-cols-2 gap-4">
+          {systemStatus.slice(0, 2).map((sys) => (
+            <Card key={sys.name} className="border-none shadow-lg bg-card/40 backdrop-blur-md rounded-3xl">
+              <CardContent className="p-5 flex items-center gap-4">
+                <div className={cn(
+                  "p-3 rounded-2xl",
+                  sys.status === 'online' ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                )}>
+                  <sys.icon className="w-5 h-5" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest truncate">{sys.name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className={cn(
+                      "w-2 h-2 rounded-full animate-pulse",
+                      sys.status === 'online' ? "bg-emerald-500" : "bg-amber-500"
+                    )} />
+                    <span className="text-sm font-bold capitalize">{sys.status}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Main Content Grid */}
