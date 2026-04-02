@@ -6,38 +6,72 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
 
   const { name, email, password } = req.body;
-  console.log(`[Register] Iniciando registro para: ${email}`);
+  console.log(`[Register] Tentando cadastrar usuário: ${email}`);
   
   try {
-    // Gerando o hash da senha com 10 rounds
+    // 1. Gerar Hash da Senha
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    console.log(`[Register] Hash gerado: ${hashedPassword}`);
-    console.log(`[Register] Comprimento do hash: ${hashedPassword.length}`);
-
+    // 2. Inserir no Supabase (Tabela 'users')
+    // Certifique-se que a tabela 'users' existe no seu banco de dados
     const { data, error } = await supabase
       .from('users')
-      .insert([{ name, email, password: hashedPassword }])
+      .insert([
+        { 
+          name, 
+          email, 
+          password: hashedPassword,
+          created_at: new Date().toISOString()
+        }
+      ])
       .select()
       .single();
 
     if (error) {
-      console.error(`[Register] Erro Supabase:`, error);
-      if (error.code === '23505') return res.status(400).json({ success: false, message: 'E-mail já cadastrado' });
-      throw error;
+      console.error(`[Register] Erro ao inserir no Supabase:`, error);
+      
+      // Erro de duplicidade (E-mail já existe)
+      if (error.code === '23505') {
+        return res.status(400).json({ success: false, message: 'Este e-mail já está em uso.' });
+      }
+      
+      return res.status(400).json({ 
+        success: false, 
+        message: `Erro no banco de dados: ${error.message}`,
+        details: error.details 
+      });
     }
 
-    console.log(`[Register] Usuário criado com sucesso. ID: ${data.id}`);
+    if (!data) {
+      console.error(`[Register] Inserção concluída mas nenhum dado foi retornado.`);
+      return res.status(500).json({ success: false, message: 'Erro ao confirmar criação do usuário.' });
+    }
 
-    const token = jwt.sign({ id: data.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    console.log(`[Register] Usuário salvo com sucesso! ID: ${data.id}`);
 
-    res.status(201).json({ 
+    // 3. Gerar Token JWT
+    const token = jwt.sign(
+      { id: data.id, email: data.email }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '7d' }
+    );
+
+    return res.status(201).json({ 
       success: true, 
-      data: { token, user: { id: data.id, name: data.name, email: data.email } } 
+      message: 'Conta criada com sucesso!',
+      data: { 
+        token, 
+        user: { id: data.id, name: data.name, email: data.email } 
+      } 
     });
+
   } catch (err) {
-    console.error(`[Register] Erro interno:`, err);
-    res.status(500).json({ success: false, message: 'Erro interno no servidor' });
+    console.error(`[Register] Erro Crítico:`, err);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Erro interno ao processar o cadastro.',
+      error: err.message 
+    });
   }
 }
