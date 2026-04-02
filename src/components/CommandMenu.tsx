@@ -12,7 +12,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { useApp } from "@/context/AppContext";
-import { BookOpen, PlusCircle, LayoutDashboard, Settings, User, Search } from "lucide-react";
+import { BookOpen, PlusCircle, LayoutDashboard, Settings, User, Search, Activity } from "lucide-react";
 
 const CommandMenu = () => {
   const [open, setOpen] = useState(false);
@@ -45,6 +45,10 @@ const CommandMenu = () => {
           <CommandItem onSelect={() => runCommand(() => navigate("/"))}>
             <LayoutDashboard className="mr-2 h-4 w-4" />
             <span>Dashboard</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate("/status"))}>
+            <Activity className="mr-2 h-4 w-4" />
+            <span>Status do Sistema</span>
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => navigate("/knowledge"))}>
             <BookOpen className="mr-2 h-4 w-4" />

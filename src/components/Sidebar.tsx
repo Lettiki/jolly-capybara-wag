@@ -16,7 +16,8 @@ import {
   Command,
   Bell,
   Menu,
-  CheckCheck
+  CheckCheck,
+  Activity
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,7 @@ const SidebarContent = () => {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+    { icon: Activity, label: 'Status do Sistema', path: '/status' },
     { icon: BookOpen, label: 'Base de Conhecimento', path: '/knowledge' },
     { icon: PlusCircle, label: 'Novo Problema', path: '/new' },
     { icon: User, label: 'Perfil', path: '/profile' },

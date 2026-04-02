@@ -146,7 +146,11 @@ const Dashboard = () => {
         </div>
         <div className="lg:col-span-4 grid grid-cols-2 gap-4">
           {systemStatus.slice(0, 2).map((sys) => (
-            <Card key={sys.name} className="border-none shadow-lg bg-card/40 backdrop-blur-md rounded-3xl">
+            <Card 
+              key={sys.name} 
+              className="border-none shadow-lg bg-card/40 backdrop-blur-md rounded-3xl cursor-pointer hover:bg-card/60 transition-colors"
+              onClick={() => navigate('/status')}
+            >
               <CardContent className="p-5 flex items-center gap-4">
                 <div className={cn(
                   "p-3 rounded-2xl",
