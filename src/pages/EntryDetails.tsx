@@ -25,7 +25,8 @@ import {
   Loader2,
   ChevronRight,
   Printer,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Sparkles
 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';

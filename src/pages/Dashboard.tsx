@@ -1,7 +1,26 @@
 "use client";
 
 import React, { useMemo, useEffect, useState } from 'react';
-import { BookOpen, Sparkles, TrendingUp, BarChart3, Clock, ChevronRight, Activity, Globe, ShieldAlert, Mail, Users, Trophy, Star, Loader2, Search, Plus, Zap } from 'lucide-react';
+import { 
+  BookOpen, 
+  Sparkles, 
+  TrendingUp, 
+  BarChart3, 
+  Clock, 
+  ChevronRight, 
+  Activity, 
+  Globe, 
+  ShieldAlert, 
+  Mail, 
+  Users, 
+  Trophy, 
+  Star, 
+  Loader2, 
+  Search, 
+  Plus, 
+  Zap,
+  User as UserIcon
+} from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -73,7 +92,7 @@ const Dashboard = () => {
     { label: 'Novo Registro', icon: Plus, path: '/new', color: 'bg-blue-500' },
     { label: 'Ver Favoritos', icon: Star, path: '/knowledge?category=Favoritos', color: 'bg-amber-500' },
     { label: 'Base Completa', icon: BookOpen, path: '/knowledge', color: 'bg-indigo-500' },
-    { label: 'Meu Perfil', icon: User, path: '/profile', color: 'bg-emerald-500' },
+    { label: 'Meu Perfil', icon: UserIcon, path: '/profile', color: 'bg-emerald-500' },
   ];
 
   const COLORS = ['#6366f1', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#64748b'];
