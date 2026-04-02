@@ -7,21 +7,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldCheck, User, Mail, Lock } from 'lucide-react';
+import { ShieldCheck, User, Mail, Lock, Loader2 } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useApp();
+  const { register, isLoading } = useApp();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(email, name);
-    showSuccess('Conta criada com sucesso!');
-    navigate('/');
+    try {
+      // Chamando a função correta do context e aguardando a conclusão
+      await register(name, email, password);
+      showSuccess('Conta criada com sucesso!');
+      navigate('/');
+    } catch (err: any) {
+      // O erro já é tratado e exibido pelo AppContext
+    }
   };
 
   return (
@@ -83,7 +88,8 @@ const Register = () => {
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full h-11 rounded-xl text-base font-semibold shadow-lg shadow-primary/20">
+            <Button type="submit" className="w-full h-11 rounded-xl text-base font-semibold shadow-lg shadow-primary/20" disabled={isLoading}>
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Finalizar Cadastro
             </Button>
           </form>
