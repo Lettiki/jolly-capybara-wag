@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   Command,
   Bell,
-  Menu
+  Menu,
+  CheckCheck
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,12 @@ const SidebarContent = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleMarkAllAsRead = () => {
+    notifications.forEach(n => {
+      if (!n.read) markNotificationAsRead(n.id);
+    });
   };
 
   const handleGlobalSearch = (e: React.FormEvent) => {
@@ -80,7 +87,15 @@ const SidebarContent = () => {
           <PopoverContent className="w-80 p-0 rounded-2xl shadow-2xl border-border" align="start">
             <div className="p-4 border-b border-border flex items-center justify-between bg-accent/30">
               <h3 className="font-bold text-sm">Notificações</h3>
-              <Badge variant="secondary" className="text-[10px]">{unreadCount} novas</Badge>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 text-[10px] gap-1.5 rounded-lg hover:bg-primary/10 hover:text-primary"
+                onClick={handleMarkAllAsRead}
+                disabled={unreadCount === 0}
+              >
+                <CheckCheck className="w-3 h-3" /> Marcar todas
+              </Button>
             </div>
             <ScrollArea className="h-[300px]">
               <div className="divide-y divide-border">
