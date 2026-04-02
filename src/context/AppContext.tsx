@@ -169,8 +169,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const fetchEntries = async (params?: { category?: string, search?: string }) => {
     setIsLoading(true);
     try {
-      const query = new URLSearchParams(params as any).toString();
-      const res = await fetch(`/api/knowledge?${query}`);
+      // Limpamos os parâmetros para não enviar strings vazias ou 'undefined'
+      const cleanParams: any = {};
+      if (params) {
+        if (params.category && params.category !== 'Todas' && params.category !== 'undefined') {
+          cleanParams.category = params.category;
+        }
+        if (params.search && params.search.trim() !== '' && params.search !== 'undefined') {
+          cleanParams.search = params.search;
+        }
+      }
+
+      const query = new URLSearchParams(cleanParams).toString();
+      const res = await fetch(`/api/knowledge?${query}`, {
+        headers: { 
+          'Authorization': `Bearer ${token}` 
+        }
+      });
       const json = await res.json();
       if (json.success) setKnowledgeBase(json.data);
     } catch (err) {
@@ -182,7 +197,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const fetchEntryById = async (id: string) => {
     try {
-      const res = await fetch(`/api/knowledge/${id}`);
+      const res = await fetch(`/api/knowledge/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const json = await res.json();
       if (json.success) return json.data;
       return null;
@@ -245,7 +262,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const markAsHelpful = async (id: string) => {
-    await fetch(`/api/knowledge/${id}/helpful`, { method: 'PUT' });
+    await fetch(`/api/knowledge/${id}/helpful`, { 
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
   };
 
   const fetchStats = async () => {
