@@ -249,9 +249,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const fetchStats = async () => {
-    const res = await fetch('/api/knowledge/stats');
-    const json = await res.json();
-    return json.data;
+    try {
+      const res = await fetch('/api/knowledge/stats');
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.success ? json.data : null;
+    } catch (err) {
+      console.error("Erro ao buscar estatísticas:", err);
+      return null;
+    }
   };
 
   const toggleFavorite = (id: string) => {

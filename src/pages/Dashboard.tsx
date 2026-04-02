@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, Cell } from 'recharts';
 import ChatAssistant from '@/components/ChatAssistant';
 import { cn } from '@/lib/utils';
+import { showError } from '@/utils/toast';
 
 const Dashboard = () => {
   const { knowledgeBase, user, favorites, fetchEntries, fetchStats } = useApp();
@@ -21,10 +22,18 @@ const Dashboard = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      await fetchEntries();
-      const statsData = await fetchStats();
-      setStats(statsData);
-      setLoading(false);
+      try {
+        // Carrega entradas e estatísticas em paralelo
+        await Promise.all([
+          fetchEntries(),
+          fetchStats().then(data => setStats(data)).catch(() => setStats(null))
+        ]);
+      } catch (err) {
+        console.error("Erro ao carregar dados do Dashboard:", err);
+        showError("Não foi possível carregar todos os dados do dashboard.");
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, []);
@@ -43,9 +52,11 @@ const Dashboard = () => {
   const topReporters = useMemo(() => {
     const counts: Record<string, number> = {};
     knowledgeBase.forEach(entry => {
-      entry.reporters?.forEach(name => {
-        counts[name] = (counts[name] || 0) + 1;
-      });
+      if (entry.reporters) {
+        entry.reporters.forEach(name => {
+          counts[name] = (counts[name] || 0) + 1;
+        });
+      }
     });
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
@@ -79,7 +90,7 @@ const Dashboard = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-indigo-600 bg-clip-text text-transparent">
-            Olá, {user?.name.split(' ')[0]}! 👋
+            Olá, {user?.name?.split(' ')[0] || 'Técnico'}! 👋
           </h1>
           <p className="text-muted-foreground text-lg">Bem-vindo à sua central de inteligência técnica.</p>
         </div>
@@ -135,20 +146,26 @@ const Dashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-[220px] pt-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats?.byCategory || []}>
-                    <XAxis dataKey="name" hide />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
-                      cursor={{ fill: 'rgba(0,0,0,0.05)' }}
-                    />
-                    <Bar dataKey="value" radius={[6, 6, 6, 6]} barSize={30}>
-                      {(stats?.byCategory || []).map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                {stats?.byCategory && stats.byCategory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.byCategory}>
+                      <XAxis dataKey="name" hide />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
+                        cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                      />
+                      <Bar dataKey="value" radius={[6, 6, 6, 6]} barSize={30}>
+                        {stats.byCategory.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm italic">
+                    Nenhum dado de categoria disponível.
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -213,7 +230,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border/50">
-                {recentEntries.map((entry) => (
+                {recentEntries.length > 0 ? recentEntries.map((entry) => (
                   <div 
                     key={entry.id} 
                     className="p-4 hover:bg-accent/20 transition-colors cursor-pointer flex items-center justify-between group"
@@ -230,7 +247,9 @@ const Dashboard = () => {
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:translate-x-1" />
                   </div>
-                ))}
+                )) : (
+                  <div className="p-10 text-center text-sm text-muted-foreground italic">Nenhuma atividade recente.</div>
+                )}
               </div>
             </CardContent>
           </Card>
