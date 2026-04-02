@@ -6,15 +6,14 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
 
   const { name, email, password } = req.body;
-  console.log(`[Register] Tentando cadastrar usuário: ${email}`);
+  console.log(`[Register] Iniciando cadastro para: ${email}`);
   
   try {
-    // 1. Gerar Hash da Senha
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    // 2. Inserir no Supabase (Tabela 'users')
-    // Certifique-se que a tabela 'users' existe no seu banco de dados
+    console.log(`[Register] Tentando inserir na tabela 'users'...`);
+    
     const { data, error } = await supabase
       .from('users')
       .insert([
@@ -29,9 +28,9 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
-      console.error(`[Register] Erro ao inserir no Supabase:`, error);
+      // Log detalhado do erro para depuração no Vercel/Logs
+      console.error('[Register] Erro retornado pelo Supabase:', JSON.stringify(error, null, 2));
       
-      // Erro de duplicidade (E-mail já existe)
       if (error.code === '23505') {
         return res.status(400).json({ success: false, message: 'Este e-mail já está em uso.' });
       }
@@ -39,18 +38,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ 
         success: false, 
         message: `Erro no banco de dados: ${error.message}`,
-        details: error.details 
+        code: error.code
       });
     }
 
     if (!data) {
-      console.error(`[Register] Inserção concluída mas nenhum dado foi retornado.`);
+      console.error('[Register] Inserção concluída mas nenhum dado retornado.');
       return res.status(500).json({ success: false, message: 'Erro ao confirmar criação do usuário.' });
     }
 
-    console.log(`[Register] Usuário salvo com sucesso! ID: ${data.id}`);
+    console.log(`[Register] Usuário criado com sucesso. ID: ${data.id}`);
 
-    // 3. Gerar Token JWT
     const token = jwt.sign(
       { id: data.id, email: data.email }, 
       process.env.JWT_SECRET, 
@@ -67,7 +65,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error(`[Register] Erro Crítico:`, err);
+    console.error('[Register] Erro inesperado no servidor:', err);
     return res.status(500).json({ 
       success: false, 
       message: 'Erro interno ao processar o cadastro.',
