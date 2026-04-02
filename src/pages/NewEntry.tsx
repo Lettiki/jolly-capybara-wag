@@ -9,13 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { showSuccess } from '@/utils/toast';
-import { Save, X, Tag as TagIcon, AlertCircle, Users } from 'lucide-react';
+import { showSuccess, showError } from '@/utils/toast';
+import { Save, X, Tag as TagIcon, AlertCircle, Users, Loader2 } from 'lucide-react';
 
 const NewEntry = () => {
   const { addEntry } = useApp();
   const navigate = useNavigate();
   
+  const [isSaving, setIsSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [solution, setSolution] = useState('');
@@ -23,23 +24,30 @@ const NewEntry = () => {
   const [tagsInput, setTagsInput] = useState('');
   const [reportersInput, setReportersInput] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t !== '');
-    const reporters = reportersInput.split(',').map(r => r.trim()).filter(r => r !== '');
-    
-    addEntry({
-      title,
-      description,
-      solution,
-      category,
-      tags,
-      reporters
-    });
+    setIsSaving(true);
+    try {
+      const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t !== '');
+      const reporters = reportersInput.split(',').map(r => r.trim()).filter(r => r !== '');
+      
+      await addEntry({
+        title,
+        description,
+        solution,
+        category,
+        tags,
+        reporters
+      });
 
-    showSuccess('Solução cadastrada com sucesso na base!');
-    navigate('/knowledge');
+      showSuccess('Solução cadastrada com sucesso na base!');
+      navigate('/knowledge');
+    } catch (err) {
+      showError("Erro ao cadastrar a solução.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -49,7 +57,7 @@ const NewEntry = () => {
           <h1 className="text-3xl font-bold tracking-tight">Novo Registro</h1>
           <p className="text-muted-foreground">Documente um novo problema e sua respectiva solução.</p>
         </div>
-        <Button variant="ghost" onClick={() => navigate(-1)} className="rounded-xl">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="rounded-xl" disabled={isSaving}>
           <X className="w-5 h-5 mr-2" /> Cancelar
         </Button>
       </div>
@@ -146,8 +154,8 @@ const NewEntry = () => {
             </div>
           </CardContent>
           <CardFooter className="bg-accent/30 p-6 flex justify-end">
-            <Button type="submit" className="h-11 px-8 rounded-xl gap-2 font-bold shadow-lg shadow-primary/20">
-              <Save className="w-5 h-5" />
+            <Button type="submit" className="h-11 px-8 rounded-xl gap-2 font-bold shadow-lg shadow-primary/20" disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               Salvar na Base
             </Button>
           </CardFooter>

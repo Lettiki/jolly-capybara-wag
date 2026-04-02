@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
-  const { user, token, knowledgeBase } = useApp();
+  const { user, token, knowledgeBase, fetchEntries } = useApp();
   const navigate = useNavigate();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -33,6 +33,22 @@ const Profile = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [loading, setLoading] = useState(knowledgeBase.length === 0);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (knowledgeBase.length === 0) {
+        try {
+          await fetchEntries();
+        } catch (err) {
+          console.error("Erro ao carregar dados do perfil");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    loadData();
+  }, []);
 
   const userStats = useMemo(() => {
     const created = knowledgeBase.filter(e => e.reporters?.includes(user?.name || '')).length;
@@ -83,6 +99,14 @@ const Profile = () => {
     }
   };
 
+  if (loading && knowledgeBase.length === 0) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -101,11 +125,11 @@ const Profile = () => {
             <div className="h-32 bg-gradient-to-br from-primary via-blue-600 to-indigo-600" />
             <CardContent className="pt-0 flex flex-col items-center -mt-16">
               <div className="w-32 h-32 rounded-3xl border-8 border-background bg-primary/10 flex items-center justify-center text-primary text-4xl font-bold shadow-2xl">
-                {user?.name.charAt(0).toUpperCase()}
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="mt-6 text-center space-y-1">
-                <h3 className="text-2xl font-bold">{user?.name}</h3>
-                <p className="text-muted-foreground">{user?.email}</p>
+                <h3 className="text-2xl font-bold">{user?.name || 'Usuário'}</h3>
+                <p className="text-muted-foreground">{user?.email || 'email@empresa.com'}</p>
               </div>
               
               <div className="grid grid-cols-2 w-full gap-4 mt-8">
@@ -129,7 +153,7 @@ const Profile = () => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border">
-                {userActivity.map((activity) => (
+                {userActivity.length > 0 ? userActivity.map((activity) => (
                   <div 
                     key={activity.id} 
                     className="p-4 hover:bg-accent/50 transition-colors cursor-pointer group"
@@ -143,7 +167,9 @@ const Profile = () => {
                       <ChevronRight className="w-3 h-3 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="p-8 text-center text-xs text-muted-foreground italic">Nenhuma atividade recente.</p>
+                )}
               </div>
             </CardContent>
           </Card>

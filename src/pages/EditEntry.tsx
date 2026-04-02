@@ -9,50 +9,83 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { showSuccess } from '@/utils/toast';
-import { Save, X, Tag as TagIcon, AlertCircle, ArrowLeft } from 'lucide-react';
+import { showSuccess, showError } from '@/utils/toast';
+import { Save, X, Tag as TagIcon, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 
 const EditEntry = () => {
   const { id } = useParams();
-  const { knowledgeBase, updateEntry } = useApp();
+  const { knowledgeBase, updateEntry, fetchEntryById } = useApp();
   const navigate = useNavigate();
   
-  const entry = knowledgeBase.find(e => e.id === id);
-
+  const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [solution, setSolution] = useState('');
   const [category, setCategory] = useState<Category>('Sistema');
   const [tagsInput, setTagsInput] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (entry) {
-      setTitle(entry.title);
-      setDescription(entry.description);
-      setSolution(entry.solution);
-      setCategory(entry.category);
-      setTagsInput(entry.tags.join(', '));
-    }
-  }, [entry]);
+    const loadEntry = async () => {
+      try {
+        let entry = knowledgeBase.find(e => e.id === id);
+        
+        if (!entry && id) {
+          entry = await fetchEntryById(id);
+        }
 
-  if (!entry) return null;
+        if (entry) {
+          setTitle(entry.title);
+          setDescription(entry.description);
+          setSolution(entry.solution);
+          setCategory(entry.category);
+          setTagsInput(entry.tags.join(', '));
+        } else {
+          showError("Registro não encontrado.");
+          navigate('/knowledge');
+        }
+      } catch (err) {
+        showError("Erro ao carregar o registro.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleSubmit = (e: React.FormEvent) => {
+    loadEntry();
+  }, [id, knowledgeBase]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t !== '');
-    
-    updateEntry(entry.id, {
-      title,
-      description,
-      solution,
-      category,
-      tags
-    });
+    if (!id) return;
 
-    showSuccess('Registro atualizado com sucesso!');
-    navigate(`/entry/${entry.id}`);
+    setIsSaving(true);
+    try {
+      const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t !== '');
+      
+      await updateEntry(id, {
+        title,
+        description,
+        solution,
+        category,
+        tags
+      });
+
+      showSuccess('Registro atualizado com sucesso!');
+      navigate(`/entry/${id}`);
+    } catch (err) {
+      showError("Erro ao salvar as alterações.");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -141,11 +174,11 @@ const EditEntry = () => {
             </div>
           </CardContent>
           <CardFooter className="bg-accent/30 p-6 flex justify-end gap-3">
-            <Button type="button" variant="ghost" onClick={() => navigate(-1)} className="rounded-xl">
+            <Button type="button" variant="ghost" onClick={() => navigate(-1)} className="rounded-xl" disabled={isSaving}>
               Descartar
             </Button>
-            <Button type="submit" className="h-11 px-8 rounded-xl gap-2 font-bold shadow-lg shadow-primary/20">
-              <Save className="w-5 h-5" />
+            <Button type="submit" className="h-11 px-8 rounded-xl gap-2 font-bold shadow-lg shadow-primary/20" disabled={isSaving}>
+              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
               Salvar Alterações
             </Button>
           </CardFooter>
